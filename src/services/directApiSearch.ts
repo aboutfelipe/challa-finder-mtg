@@ -76,7 +76,7 @@ export const searchTcgmatchDirect = async (cardName: string): Promise<CardResult
       cardName: item.name || cardName,
       price: `$${item.price.toLocaleString('es-CL')}`,
       inStock: item.quantity > 0,
-      productUrl: `https://tcgmatch.cl/product/${item._id}`,
+      productUrl: `https://tcgmatch.cl/producto/${item._id}`,
       imageUrl: item.card?.data?.image_uris?.normal || item.card?.data?.image_uris?.large,
       condition: item.status === 0 ? "Near Mint" : item.status === 1 ? "Lightly Played" : "Good",
       set: item.card?.data?.set_name || item.set || "Magic Singles"
@@ -123,13 +123,24 @@ export const searchCatlotusDirect = async (cardName: string): Promise<CardResult
               3: "Heavily Played"
             };
 
+            const setSegment = (card.set_code || card.set || "").toString().toLowerCase();
+            const nameSegment = (card.nombre || "").toLowerCase();
+            let productUrl = "";
+            if (setSegment && nameSegment) {
+              productUrl = `https://catlotus.cl/cardview/${encodeURIComponent(setSegment)}/${encodeURIComponent(nameSegment)}/default/single-part`;
+            } else if (card.idcarta) {
+              productUrl = `https://catlotus.cl/carta/${card.idcarta}`;
+            } else {
+              productUrl = `https://catlotus.cl/search?q=${encodeURIComponent(card.nombre || cardName)}`;
+            }
+
             results.push({
               store: "Catlotus",
               storeUrl: "https://catlotus.cl",
               cardName: card.nombre || cardName,
               price: `$${card.precio.toLocaleString('es-CL')}`,
               inStock: card.stock > 0,
-              productUrl: `https://catlotus.cl/carta/${card.idcarta}`,
+              productUrl,
               imageUrl: card.image_uris?.normal || card.image_uris?.large,
               condition: conditionMap[card.estado] || "Near Mint",
               set: card.set_name || card.set || "Magic Singles"
