@@ -10,7 +10,7 @@ export interface ApiSearchResult {
 // PayToWin Shopify API implementation
 export const searchPaytowinDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
-    // Using the exact API URL format provided
+    // First, try the direct API call
     const searchUrl = `https://www.paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
     
     const response = await fetch(searchUrl, {
@@ -23,7 +23,7 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
     });
 
     if (!response.ok) {
-      throw new Error(`PayToWin API error: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -72,9 +72,29 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
     });
 
   } catch (error) {
-    console.error('Error en PayToWin API directa:', error);
-    // Return empty array instead of throwing to allow other APIs to work
-    return [];
+    console.log('Direct PayToWin API failed, trying server fallback...', error);
+    
+    // CORS fallback: use our server endpoint
+    try {
+      const serverResponse = await fetch('/api/paytowin-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cardName }),
+      });
+
+      if (!serverResponse.ok) {
+        throw new Error(`Server API error: ${serverResponse.status}`);
+      }
+
+      const results = await serverResponse.json();
+      return results;
+
+    } catch (serverError) {
+      console.error('Server fallback also failed:', serverError);
+      return [];
+    }
   }
 };
 
