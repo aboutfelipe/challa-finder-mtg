@@ -127,10 +127,9 @@ export const searchCatlotusDirect = async (cardName: string): Promise<CardResult
             const nameSlug = encodeURIComponent((card.nombre || "").toLowerCase());
             const collector = (card.collector_number || "").toString();
             let productUrl = "";
-            if (setCode && nameSlug && collector) {
-              productUrl = `https://catlotus.cl/cardview/${setCode}/${nameSlug}/${encodeURIComponent(collector)}/single-part`;
-            } else if (card.idcarta) {
-              productUrl = `https://catlotus.cl/carta/${card.idcarta}`;
+            const collectorOrDefault = collector || "default";
+            if (setCode && nameSlug) {
+              productUrl = `https://catlotus.cl/cardview/${setCode}/${nameSlug}/${encodeURIComponent(collectorOrDefault)}/single-part`;
             } else {
               productUrl = `https://catlotus.cl/search?q=${encodeURIComponent(card.nombre || cardName)}`;
             }
