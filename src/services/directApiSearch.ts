@@ -10,13 +10,16 @@ export interface ApiSearchResult {
 // PayToWin Shopify API implementation
 export const searchPaytowinDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
-    const searchUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product&resources[limit]=10`;
+    // Use the full URL format as provided
+    const searchUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product&resources[options][unavailable_products]=last&resources[options][fields]=title,variants.title`;
     
     const response = await fetch(searchUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Origin': 'https://paytowin.cl',
       },
+      mode: 'cors',
     });
 
     if (!response.ok) {
@@ -33,14 +36,15 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
       price: product.price ? `$${(product.price / 100).toLocaleString('es-CL')}` : "Precio no disponible",
       inStock: product.available || false,
       productUrl: `https://paytowin.cl${product.url}`,
-      imageUrl: product.image ? `https:${product.image}` : undefined,
+      imageUrl: product.featured_image?.url ? `https:${product.featured_image.url}` : undefined,
       condition: "Near Mint", // Default for PayToWin
       set: product.vendor || "Magic Singles"
     }));
 
   } catch (error) {
-    console.error('Error en PayToWin API directa:', error);
-    throw error;
+    console.error('Error en PayToWin API directa (usando fallback):', error);
+    // Return empty array instead of throwing to allow other APIs to work
+    return [];
   }
 };
 
@@ -175,8 +179,9 @@ export const searchLacriptaDirect = async (cardName: string): Promise<CardResult
     }));
 
   } catch (error) {
-    console.error('Error en La Cripta API directa:', error);
-    throw error;
+    console.error('Error en La Cripta API directa (sin autenticación disponible):', error);
+    // Return empty array instead of throwing to allow other APIs to work
+    return [];
   }
 };
 

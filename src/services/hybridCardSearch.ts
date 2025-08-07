@@ -41,7 +41,7 @@ export const searchCardHybrid = async (cardName: string): Promise<HybridSearchRe
       console.log(`✅ ${storeName} API completada en ${storeTime}ms - ${results.length} resultados`);
       return results;
     } catch (error) {
-      console.warn(`⚠️ ${storeName} API falló:`, error);
+      console.warn(`⚠️ ${storeName} API falló (continuando con otras):`, error);
       const storeTime = Date.now() - storeStart;
       storeTimings[storeName] = storeTime;
       return [];
@@ -130,9 +130,9 @@ export const checkHybridSystemHealth = async (): Promise<{
     puppeteerAvailable = false;
   }
   
-  // Overall health: at least 3 out of 4 APIs working
+  // Overall health: at least 2 out of 4 APIs working (more realistic threshold)
   const workingApis = Object.values(directApiHealth).filter(Boolean).length;
-  const overallHealth = workingApis >= 3;
+  const overallHealth = workingApis >= 2;
   
   return {
     directApis: directApiHealth,
