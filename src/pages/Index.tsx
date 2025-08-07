@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
-import { searchCardInAllStores } from "@/services/cardScraper";
+import { searchCardInAllStores, checkScraperHealth, SearchResponse } from "@/services/cardScraper";
 import { useToast } from "@/hooks/use-toast";
 import heroBackground from "@/assets/mtg-hero-bg.jpg";
 
@@ -9,32 +9,49 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<CardResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
+  const [isRealScraping, setIsRealScraping] = useState<boolean | null>(null);
   const { toast } = useToast();
 
   const handleSearch = async (cardName: string) => {
     setIsLoading(true);
     setLastSearchTerm(cardName);
     setSearchResults([]);
+    setIsRealScraping(null);
     
     try {
+      // First check if scraper server is available
+      const isServerAvailable = await checkScraperHealth();
+      
+      if (!isServerAvailable) {
+        toast({
+          title: "⚠️ Servidor no disponible",
+          description: "El servidor de scraping no está corriendo. Ejecuta 'npm run server' en una terminal separada.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       toast({
-        title: "Búsqueda iniciada",
-        description: `Buscando "${cardName}" en todas las tiendas...`,
+        title: "🔍 Scraping iniciado",
+        description: `Realizando scraping real en las tiendas para "${cardName}"...`,
       });
       
-      const results = await searchCardInAllStores(cardName);
-      setSearchResults(results);
+      const searchResponse: SearchResponse = await searchCardInAllStores(cardName);
+      setSearchResults(searchResponse.results);
+      setIsRealScraping(searchResponse.isRealScraping);
       
-      const inStockCount = results.filter(r => r.inStock).length;
+      const inStockCount = searchResponse.results.filter(r => r.inStock).length;
       toast({
-        title: "Búsqueda completada",
-        description: `Se encontraron ${inStockCount} resultados con stock de ${results.length} tiendas consultadas.`,
+        title: "✅ Scraping completado",
+        description: `Scraping real exitoso: ${inStockCount} productos con stock de ${searchResponse.results.length} resultados encontrados.`,
       });
     } catch (error) {
       console.error("Search error:", error);
+      setIsRealScraping(false);
       toast({
-        title: "Error",
-        description: "Error al buscar las cartas. Por favor intenta nuevamente.",
+        title: "❌ Error en el scraping",
+        description: error instanceof Error ? error.message : "Error desconocido en el scraping.",
         variant: "destructive",
       });
     } finally {
@@ -71,6 +88,18 @@ const Index = () => {
           {/* Search Results */}
           {(searchResults.length > 0 || (!isLoading && lastSearchTerm)) && (
             <div className="mt-16">
+              {/* Status indicator */}
+              {isRealScraping !== null && (
+                <div className="mb-4 text-center">
+                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                    isRealScraping 
+                      ? 'bg-green-900/20 text-green-400 border border-green-500/30' 
+                      : 'bg-red-900/20 text-red-400 border border-red-500/30'
+                  }`}>
+                    {isRealScraping ? '🟢 Scraping Real Activo' : '🔴 Usando Datos Simulados'}
+                  </div>
+                </div>
+              )}
               <SearchResults results={searchResults} searchTerm={lastSearchTerm} />
             </div>
           )}

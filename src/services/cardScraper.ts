@@ -5,8 +5,19 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://your-scraper-api.com' 
   : 'http://localhost:3001';
 
-export const searchCardInAllStores = async (cardName: string): Promise<CardResult[]> => {
+// Interface for search response that includes metadata
+export interface SearchResponse {
+  results: CardResult[];
+  isRealScraping: boolean;
+  message: string;
+  timestamp: string;
+}
+
+export const searchCardInAllStores = async (cardName: string): Promise<SearchResponse> => {
   try {
+    console.log(`🔍 Iniciando scraping real para: "${cardName}"`);
+    console.log(`📡 Conectando al servidor: ${API_BASE_URL}`);
+    
     const response = await fetch(`${API_BASE_URL}/api/search`, {
       method: 'POST',
       headers: {
@@ -16,61 +27,45 @@ export const searchCardInAllStores = async (cardName: string): Promise<CardResul
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Error del servidor: ${response.status} - ${response.statusText}`);
     }
 
     const results: CardResult[] = await response.json();
-    return results;
-  } catch (error) {
-    console.error('Error searching cards:', error);
     
-    // Fallback to mock data if API is unavailable
-    console.log('Falling back to mock data...');
-    return getMockResults(cardName);
+    console.log(`✅ Scraping completado exitosamente. ${results.length} resultados obtenidos.`);
+    
+    return {
+      results,
+      isRealScraping: true,
+      message: `Scraping completado exitosamente. Se obtuvieron ${results.length} resultados de las tiendas.`,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error('❌ Error en el scraping:', error);
+    
+    // Check if it's a network error (server not running)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const errorMessage = 'El servidor de scraping no está disponible. Asegúrate de ejecutar: npm run server';
+      throw new Error(errorMessage);
+    }
+    
+    // For other errors, throw them as well
+    throw new Error(`Error en el scraping: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
 };
 
-// Fallback mock data function for when the API is unavailable
-const getMockResults = (cardName: string): CardResult[] => {
-  const stores = ['Catlotus', 'Pay2Win', 'La Cripta', 'TCGMatch'];
-  const results: CardResult[] = [];
-
-  stores.forEach(store => {
-    if (Math.random() > 0.3) { // 70% chance of having results
-      results.push({
-        store: store,
-        storeUrl: getStoreUrl(store),
-        cardName: cardName,
-        price: `$${Math.floor(Math.random() * 50000 + 5000).toLocaleString()} CLP`,
-        inStock: Math.random() > 0.4,
-        productUrl: `${getStoreUrl(store)}/search?q=${encodeURIComponent(cardName)}`,
-        condition: Math.random() > 0.5 ? "Near Mint" : "Lightly Played",
-        set: "Magic Singles"
-      });
-    }
-  });
-
-  return results.sort((a, b) => {
-    if (a.inStock !== b.inStock) {
-      return b.inStock ? 1 : -1;
-    }
-    if (a.price && b.price) {
-      const priceA = parseInt(a.price.replace(/[^\d]/g, ''));
-      const priceB = parseInt(b.price.replace(/[^\d]/g, ''));
-      return priceA - priceB;
-    }
-    return 0;
-  });
-};
-
-const getStoreUrl = (storeName: string): string => {
-  const storeUrls: { [key: string]: string } = {
-    'Catlotus': 'https://catlotus.cl',
-    'Pay2Win': 'https://www.paytowin.cl',
-    'La Cripta': 'https://lacripta.cl',
-    'TCGMatch': 'https://tcgmatch.cl'
-  };
-  return storeUrls[storeName] || '';
+// Function to check if scraper server is available
+export const checkScraperHealth = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/health`, {
+      method: 'GET',
+    });
+    return response.ok;
+  } catch (error) {
+    console.log('🚫 Servidor de scraping no disponible');
+    return false;
+  }
 };
 
 // Function to get store information
