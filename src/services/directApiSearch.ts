@@ -123,14 +123,12 @@ export const searchCatlotusDirect = async (cardName: string): Promise<CardResult
               3: "Heavily Played"
             };
 
-            const setSegment = (card.set_code || card.set || "").toString().toLowerCase();
-            const nameSegment = (card.nombre || "").toLowerCase();
             let productUrl = "";
-            if (setSegment && nameSegment) {
-              productUrl = `https://catlotus.cl/cardview/${encodeURIComponent(setSegment)}/${encodeURIComponent(nameSegment)}/default/single-part`;
-            } else if (card.idcarta) {
+            if (card.idcarta) {
+              // Usamos la página estable y confiable por ID
               productUrl = `https://catlotus.cl/carta/${card.idcarta}`;
             } else {
+              // Fallback a búsqueda si no tenemos ID
               productUrl = `https://catlotus.cl/search?q=${encodeURIComponent(card.nombre || cardName)}`;
             }
 
