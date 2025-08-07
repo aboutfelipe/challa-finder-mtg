@@ -2,41 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Magic The Gathering Card Finder Design System */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* MTG Magic-inspired color palette */
+    --background: 225 15% 5%;
+    --foreground: 280 15% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 225 20% 8%;
+    --card-foreground: 280 15% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 225 20% 10%;
+    --popover-foreground: 280 15% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Deep mystical purple */
+    --primary: 270 60% 45%;
+    --primary-foreground: 280 15% 95%;
+    --primary-glow: 270 80% 65%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Dark ethereal */
+    --secondary: 225 25% 15%;
+    --secondary-foreground: 280 15% 95%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Subtle dark tones */
+    --muted: 225 20% 12%;
+    --muted-foreground: 280 10% 70%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Magical gold */
+    --accent: 45 90% 60%;
+    --accent-foreground: 225 15% 5%;
+
+    /* Success: Mystic green */
+    --success: 120 50% 45%;
+    --success-foreground: 280 15% 95%;
+
+    /* Warning: Arcane orange */
+    --warning: 25 90% 60%;
+    --warning-foreground: 225 15% 5%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 280 15% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 225 25% 20%;
+    --input: 225 25% 15%;
+    --ring: 270 60% 45%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* MTG-specific design tokens */
+    --magic-gradient: linear-gradient(135deg, hsl(270 60% 45%), hsl(270 80% 65%));
+    --ethereal-gradient: linear-gradient(180deg, hsl(225 20% 8%), hsl(225 25% 12%));
+    --gold-gradient: linear-gradient(135deg, hsl(45 90% 60%), hsl(35 85% 55%));
+    
+    /* Shadows with magical glow */
+    --shadow-magical: 0 10px 30px -5px hsl(270 60% 45% / 0.3);
+    --shadow-ethereal: 0 5px 20px -5px hsl(225 25% 0% / 0.5);
+    --shadow-glow: 0 0 30px hsl(270 80% 65% / 0.4);
+    
+    /* Smooth magical transitions */
+    --transition-magical: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-ethereal: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     --sidebar-background: 0 0% 98%;
 
@@ -55,34 +81,16 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+  .light {
+    /* Light theme for accessibility if needed */
+    --background: 280 15% 97%;
+    --foreground: 225 15% 10%;
+    --card: 280 10% 94%;
+    --card-foreground: 225 15% 10%;
+    --primary: 270 60% 35%;
+    --primary-foreground: 280 15% 95%;
+    --border: 225 25% 85%;
+    --input: 225 25% 90%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +108,45 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/20;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes pulse-glow {
+    from {
+      box-shadow: 0 0 20px hsl(var(--primary-glow) / 0.3);
+    }
+    to {
+      box-shadow: 0 0 30px hsl(var(--primary-glow) / 0.6);
+    }
   }
 }
