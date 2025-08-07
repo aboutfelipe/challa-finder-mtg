@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
-import { searchCardInAllStores, checkScraperHealth, SearchResponse } from "@/services/cardScraper";
+import { searchCardHybrid, checkHybridSystemHealth, HybridSearchResponse } from "@/services/hybridCardSearch";
+import { getStoreInfo } from "@/services/cardScraper";
 import { useToast } from "@/hooks/use-toast";
 import heroBackground from "@/assets/mtg-hero-bg.jpg";
 
@@ -10,6 +11,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [isRealScraping, setIsRealScraping] = useState<boolean | null>(null);
+  const [searchMethod, setSearchMethod] = useState<string>("");
   const { toast } = useToast();
 
   const handleSearch = async (cardName: string) => {
@@ -17,41 +19,52 @@ const Index = () => {
     setLastSearchTerm(cardName);
     setSearchResults([]);
     setIsRealScraping(null);
+    setSearchMethod("");
     
     try {
-      // First check if scraper server is available
-      const isServerAvailable = await checkScraperHealth();
+      // Check hybrid system health
+      const systemHealth = await checkHybridSystemHealth();
       
-      if (!isServerAvailable) {
+      if (!systemHealth.overallHealth) {
         toast({
-          title: "⚠️ Servidor no disponible",
-          description: "El servidor de scraping no está corriendo. Ejecuta 'npm run server' en una terminal separada.",
+          title: "⚠️ Sistema de búsqueda no disponible",
+          description: "No se puede conectar a ningún servicio de búsqueda.",
           variant: "destructive",
         });
         setIsLoading(false);
         return;
       }
 
+      // Show which methods are available
+      const availableMethods = [];
+      if (Object.values(systemHealth.directApis).some(healthy => healthy)) {
+        availableMethods.push("APIs directas");
+      }
+      if (systemHealth.puppeteerAvailable) {
+        availableMethods.push("Puppeteer");
+      }
+
       toast({
-        title: "🔍 Scraping iniciado",
-        description: `Realizando scraping real en las tiendas para "${cardName}"...`,
+        title: "🚀 Iniciando búsqueda híbrida",
+        description: `Buscando "${cardName}" usando: ${availableMethods.join(' + ')}`,
       });
       
-      const searchResponse: SearchResponse = await searchCardInAllStores(cardName);
+      const searchResponse: HybridSearchResponse = await searchCardHybrid(cardName);
       setSearchResults(searchResponse.results);
       setIsRealScraping(searchResponse.isRealScraping);
+      setSearchMethod(`APIs: ${searchResponse.methodsUsed.directApi.length} | Puppeteer: ${searchResponse.methodsUsed.puppeteer.length}`);
       
       const inStockCount = searchResponse.results.filter(r => r.inStock).length;
       toast({
-        title: "✅ Scraping completado",
-        description: `Scraping real exitoso: ${inStockCount} productos con stock de ${searchResponse.results.length} resultados encontrados.`,
+        title: "✅ Búsqueda completada",
+        description: `${inStockCount} productos con stock de ${searchResponse.results.length} resultados (${searchResponse.performance.totalTime}ms)`,
       });
     } catch (error) {
       console.error("Search error:", error);
       setIsRealScraping(false);
       toast({
-        title: "❌ Error en el scraping",
-        description: error instanceof Error ? error.message : "Error desconocido en el scraping.",
+        title: "❌ Error en la búsqueda",
+        description: error instanceof Error ? error.message : "Error desconocido en la búsqueda.",
         variant: "destructive",
       });
     } finally {
@@ -90,14 +103,19 @@ const Index = () => {
             <div className="mt-16">
               {/* Status indicator */}
               {isRealScraping !== null && (
-                <div className="mb-4 text-center">
+                <div className="mb-4 text-center space-y-2">
                   <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
                     isRealScraping 
                       ? 'bg-green-900/20 text-green-400 border border-green-500/30' 
                       : 'bg-red-900/20 text-red-400 border border-red-500/30'
                   }`}>
-                    {isRealScraping ? '🟢 Scraping Real Activo' : '🔴 Usando Datos Simulados'}
+                    {isRealScraping ? '🟢 Búsqueda Híbrida Activa' : '🔴 Usando Datos Simulados'}
                   </div>
+                  {searchMethod && (
+                    <div className="text-xs text-muted-foreground">
+                      {searchMethod}
+                    </div>
+                  )}
                 </div>
               )}
               <SearchResults results={searchResults} searchTerm={lastSearchTerm} />
@@ -115,12 +133,7 @@ const Index = () => {
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                {[
-                  { name: "Catlotus", url: "https://catlotus.cl" },
-                  { name: "Pay2Win", url: "https://www.paytowin.cl" },
-                  { name: "La Cripta", url: "https://lacripta.cl" },
-                  { name: "TCGMatch", url: "https://tcgmatch.cl" }
-                ].map((store) => (
+                {getStoreInfo().map((store) => (
                   <div 
                     key={store.name}
                     className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-lg p-4 text-center hover:bg-card/70 transition-all duration-300"
