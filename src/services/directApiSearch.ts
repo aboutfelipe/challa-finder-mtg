@@ -10,14 +10,14 @@ export interface ApiSearchResult {
 // PayToWin Shopify API implementation
 export const searchPaytowinDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
-    // Use the full URL format as provided
-    const searchUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product&resources[options][unavailable_products]=last&resources[options][fields]=title,variants.title`;
+    // Using the exact API URL format provided
+    const searchUrl = `https://www.paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
     
     const response = await fetch(searchUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Origin': 'https://paytowin.cl',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
       mode: 'cors',
     });
@@ -29,20 +29,50 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
     const data = await response.json();
     const products = data.resources?.results?.products || [];
 
-    return products.map((product: any) => ({
-      store: "Pay2Win",
-      storeUrl: "https://www.paytowin.cl",
-      cardName: product.title || cardName,
-      price: product.price ? `$${(product.price / 100).toLocaleString('es-CL')}` : "Precio no disponible",
-      inStock: product.available || false,
-      productUrl: `https://paytowin.cl${product.url}`,
-      imageUrl: product.featured_image?.url ? `https:${product.featured_image.url}` : undefined,
-      condition: "Near Mint", // Default for PayToWin
-      set: product.vendor || "Magic Singles"
-    }));
+    return products.slice(0, 10).map((product: any) => {
+      // Extract set information from the body HTML or tags
+      let extractedSet = "Magic Singles";
+      if (product.body) {
+        const setMatch = product.body.match(/<td>Set:<\/td>\s*<td>([^<]+)<\/td>/);
+        if (setMatch) {
+          extractedSet = setMatch[1].trim();
+        }
+      }
+
+      // Extract condition from tags if available (looking for condition-related tags)
+      let condition = "Near Mint";
+      if (product.tags && Array.isArray(product.tags)) {
+        const conditionTags = product.tags.filter((tag: string) => 
+          tag.toLowerCase().includes('played') || 
+          tag.toLowerCase().includes('damaged') || 
+          tag.toLowerCase().includes('mint')
+        );
+        if (conditionTags.length > 0) {
+          condition = conditionTags[0];
+        }
+      }
+
+      // Convert price from centavos to CLP
+      const priceInCLP = product.price ? Math.floor(Number(product.price)) : 0;
+      const formattedPrice = priceInCLP > 0 ? 
+        `$${priceInCLP.toLocaleString('es-CL')} CLP` : 
+        "Precio no disponible";
+
+      return {
+        store: "Pay2Win",
+        storeUrl: "https://www.paytowin.cl",
+        cardName: product.title || cardName,
+        price: formattedPrice,
+        inStock: product.available || false,
+        productUrl: `https://www.paytowin.cl${product.url}`,
+        imageUrl: product.featured_image?.url || product.image || undefined,
+        condition: condition,
+        set: extractedSet
+      };
+    });
 
   } catch (error) {
-    console.error('Error en PayToWin API directa (usando fallback):', error);
+    console.error('Error en PayToWin API directa:', error);
     // Return empty array instead of throwing to allow other APIs to work
     return [];
   }
