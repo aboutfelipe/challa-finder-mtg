@@ -123,16 +123,16 @@ export const searchCatlotusDirect = async (cardName: string): Promise<CardResult
               3: "Heavily Played"
             };
 
-            const setCode = (card.set || card.set_code || "").toString().toLowerCase();
-            const nameSlug = encodeURIComponent((card.nombre || "").toLowerCase());
-            const collector = (card.collector_number || "").toString();
+            const setCode = (card.set || card.set_code || card.setCode || "").toString().toLowerCase();
+            const nameBase = (card.nombre || card.name || card.card_name || cardName || "").toString();
+            const nameSlug = encodeURIComponent(nameBase.trim().toLowerCase());
+            const collectorOrDefault = ((card.collector_number || card.collector || card.number || "").toString().trim()) || "default";
             let productUrl = "";
-            if (setCode && nameSlug && collector) {
-              productUrl = `https://catlotus.cl/cardview/${setCode}/${nameSlug}/${encodeURIComponent(collector)}/single-part`;
-            } else if (card.idcarta) {
-              productUrl = `https://catlotus.cl/carta/${card.idcarta}`;
+            if (setCode && nameSlug) {
+              productUrl = `https://catlotus.cl/cardview/${setCode}/${nameSlug}/${encodeURIComponent(collectorOrDefault)}/single-part`;
             } else {
-              productUrl = `https://catlotus.cl/search?q=${encodeURIComponent(card.nombre || cardName)}`;
+              // Si no podemos construir cardview por falta de set o nombre, caemos a búsqueda del sitio
+              productUrl = `https://catlotus.cl/search?q=${encodeURIComponent(nameBase || cardName)}`;
             }
 
             results.push({
