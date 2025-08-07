@@ -246,13 +246,86 @@ export const searchLacriptaDirect = async (cardName: string): Promise<CardResult
   }
 };
 
+// Magic Sur WordPress/WooCommerce search API implementation
+export const searchMagicsurDirect = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    // Try direct API call first
+    const searchUrl = `https://www.cartasmagicsur.cl/wp-admin/admin-ajax.php?action=porto_ajax_search_posts&nonce=f4be613acf&post_type=product&query=${encodeURIComponent(cardName)}`;
+    
+    const response = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const products = data.suggestions || [];
+
+    return products.slice(0, 10).map((product: any) => {
+      // Extract price from HTML
+      let priceValue = "Precio no disponible";
+      if (product.price) {
+        const priceMatch = product.price.match(/(\d+\.?\d*)/);
+        if (priceMatch) {
+          const price = parseFloat(priceMatch[1].replace('.', ''));
+          priceValue = `$${price.toLocaleString('es-CL')} CLP`;
+        }
+      }
+
+      return {
+        store: "Magic Sur",
+        storeUrl: "https://www.cartasmagicsur.cl",
+        cardName: product.value || cardName,
+        price: priceValue,
+        inStock: product.instock || false,
+        productUrl: product.url || "https://www.cartasmagicsur.cl",
+        imageUrl: product.img || undefined,
+        condition: "Near Mint", // Default condition
+        set: product.categoria || "Magic Singles"
+      };
+    });
+
+  } catch (error) {
+    console.log('Direct Magic Sur API failed, trying server fallback...', error);
+    
+    // CORS fallback: use our server endpoint
+    try {
+      const serverResponse = await fetch('/api/magicsur-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cardName }),
+      });
+
+      if (!serverResponse.ok) {
+        throw new Error(`Server API error: ${serverResponse.status}`);
+      }
+
+      const results = await serverResponse.json();
+      return results;
+
+    } catch (serverError) {
+      console.error('Server fallback also failed:', serverError);
+      return [];
+    }
+  }
+};
+
 // Store API capabilities detection
 export const getStoreApiCapabilities = () => {
   return {
     'Pay2Win': { hasDirectApi: true, method: 'shopify' },
     'La Cripta': { hasDirectApi: true, method: 'woocommerce' },
     'Catlotus': { hasDirectApi: true, method: 'custom-api' },
-    'TCGMatch': { hasDirectApi: true, method: 'custom-api' }
+    'TCGMatch': { hasDirectApi: true, method: 'custom-api' },
+    'Magic Sur': { hasDirectApi: true, method: 'wordpress-ajax' }
   };
 };
 
@@ -267,6 +340,8 @@ export const searchStoreDirectApi = async (storeName: string, cardName: string):
       return await searchCatlotusDirect(cardName);
     case 'TCGMatch':
       return await searchTcgmatchDirect(cardName);
+    case 'Magic Sur':
+      return await searchMagicsurDirect(cardName);
     default:
       throw new Error(`No direct API available for ${storeName}`);
   }

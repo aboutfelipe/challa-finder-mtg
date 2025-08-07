@@ -139,6 +139,69 @@ app.post('/api/paytowin-direct', async (req, res) => {
   }
 });
 
+// Magic Sur direct API endpoint (to bypass CORS)
+app.post('/api/magicsur-direct', async (req, res) => {
+  const { cardName } = req.body;
+  const clientIp = req.ip || req.connection.remoteAddress;
+
+  // Rate limiting
+  if (!checkRateLimit(clientIp)) {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
+
+  if (!cardName) {
+    return res.status(400).json({ error: 'Card name is required' });
+  }
+
+  try {
+    const searchUrl = `https://www.cartasmagicsur.cl/wp-admin/admin-ajax.php?action=porto_ajax_search_posts&nonce=f4be613acf&post_type=product&query=${encodeURIComponent(cardName)}`;
+    
+    const response = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Magic Sur API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const products = data.suggestions || [];
+
+    const results = products.slice(0, 10).map((product) => {
+      // Extract price from HTML
+      let priceValue = "Precio no disponible";
+      if (product.price) {
+        const priceMatch = product.price.match(/(\d+\.?\d*)/);
+        if (priceMatch) {
+          const price = parseFloat(priceMatch[1].replace('.', ''));
+          priceValue = `$${price.toLocaleString('es-CL')} CLP`;
+        }
+      }
+
+      return {
+        store: "Magic Sur",
+        storeUrl: "https://www.cartasmagicsur.cl",
+        cardName: product.value || cardName,
+        price: priceValue,
+        inStock: product.instock || false,
+        productUrl: product.url || "https://www.cartasmagicsur.cl",
+        imageUrl: product.img || undefined,
+        condition: "Near Mint", // Default condition
+        set: product.categoria || "Magic Singles"
+      };
+    });
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error calling Magic Sur API:', error);
+    res.status(500).json({ error: `Error calling Magic Sur API: ${error.message}` });
+  }
+});
+
 // Generic scraper endpoint
 app.post('/api/scrape/:store', async (req, res) => {
   const { store } = req.params;
