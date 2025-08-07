@@ -44,6 +44,105 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
   }
 };
 
+// TCGMatch API implementation
+export const searchTcgmatchDirect = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const searchUrl = `https://api.tcgmatch.cl/products/search?palabra=${encodeURIComponent(cardName)}&tcg=magic`;
+    
+    const response = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`TCGMatch API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success || !data.data?.items) {
+      return [];
+    }
+
+    return data.data.items.map((item: any) => ({
+      store: "TCGMatch",
+      storeUrl: "https://tcgmatch.cl",
+      cardName: item.name || cardName,
+      price: `$${item.price.toLocaleString('es-CL')}`,
+      inStock: item.quantity > 0,
+      productUrl: `https://tcgmatch.cl/product/${item._id}`,
+      imageUrl: item.card?.data?.image_uris?.normal || item.card?.data?.image_uris?.large,
+      condition: item.status === 0 ? "Near Mint" : item.status === 1 ? "Lightly Played" : "Good",
+      set: item.card?.data?.set_name || item.set || "Magic Singles"
+    }));
+
+  } catch (error) {
+    console.error('Error en TCGMatch API directa:', error);
+    throw error;
+  }
+};
+
+// Catlotus API implementation
+export const searchCatlotusDirect = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const response = await fetch('https://catlotus.cl/api/search/card', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        search: cardName,
+        set: "",
+        foil: "",
+        page: 1
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Catlotus API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const results: CardResult[] = [];
+    
+    if (data.stock) {
+      Object.values(data.stock).forEach((groupArray: any) => {
+        if (Array.isArray(groupArray)) {
+          groupArray.forEach((card: any) => {
+            const conditionMap: { [key: number]: string } = {
+              0: "Near Mint",
+              1: "Lightly Played", 
+              2: "Moderately Played",
+              3: "Heavily Played"
+            };
+
+            results.push({
+              store: "Catlotus",
+              storeUrl: "https://catlotus.cl",
+              cardName: card.nombre || cardName,
+              price: `$${card.precio.toLocaleString('es-CL')}`,
+              inStock: card.stock > 0,
+              productUrl: `https://catlotus.cl/carta/${card.idcarta}`,
+              imageUrl: card.image_uris?.normal || card.image_uris?.large,
+              condition: conditionMap[card.estado] || "Near Mint",
+              set: card.set_name || card.set || "Magic Singles"
+            });
+          });
+        }
+      });
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('Error en Catlotus API directa:', error);
+    throw error;
+  }
+};
+
 // La Cripta WooCommerce API (experimental)
 export const searchLacriptaDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
@@ -85,9 +184,9 @@ export const searchLacriptaDirect = async (cardName: string): Promise<CardResult
 export const getStoreApiCapabilities = () => {
   return {
     'Pay2Win': { hasDirectApi: true, method: 'shopify' },
-    'La Cripta': { hasDirectApi: true, method: 'woocommerce' }, // Experimental
-    'Catlotus': { hasDirectApi: false, method: 'puppeteer' },
-    'TCGMatch': { hasDirectApi: false, method: 'puppeteer' }
+    'La Cripta': { hasDirectApi: true, method: 'woocommerce' },
+    'Catlotus': { hasDirectApi: true, method: 'custom-api' },
+    'TCGMatch': { hasDirectApi: true, method: 'custom-api' }
   };
 };
 
@@ -98,6 +197,10 @@ export const searchStoreDirectApi = async (storeName: string, cardName: string):
       return await searchPaytowinDirect(cardName);
     case 'La Cripta':
       return await searchLacriptaDirect(cardName);
+    case 'Catlotus':
+      return await searchCatlotusDirect(cardName);
+    case 'TCGMatch':
+      return await searchTcgmatchDirect(cardName);
     default:
       throw new Error(`No direct API available for ${storeName}`);
   }

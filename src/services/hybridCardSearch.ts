@@ -19,86 +19,42 @@ export interface HybridSearchResponse extends SearchResponse {
   };
 }
 
-// Main hybrid search function
+// Main hybrid search function - Now 100% Direct APIs
 export const searchCardHybrid = async (cardName: string): Promise<HybridSearchResponse> => {
   const startTime = Date.now();
   const capabilities = getStoreApiCapabilities();
   const allResults: CardResult[] = [];
   const directApiStores: string[] = [];
-  const puppeteerStores: string[] = [];
   const storeTimings: { [store: string]: number } = {};
 
-  console.log(`🔄 Iniciando búsqueda híbrida para: "${cardName}"`);
+  console.log(`🚀 Iniciando búsqueda 100% APIs directas para: "${cardName}"`);
   
-  // Phase 1: Direct API searches (fast)
-  const directApiPromises = Object.entries(capabilities)
-    .filter(([_, config]) => config.hasDirectApi)
-    .map(async ([storeName, _]) => {
-      const storeStart = Date.now();
-      try {
-        console.log(`⚡ Buscando en ${storeName} con API directa...`);
-        const results = await searchStoreDirectApi(storeName, cardName);
-        const storeTime = Date.now() - storeStart;
-        storeTimings[storeName] = storeTime;
-        directApiStores.push(storeName);
-        console.log(`✅ ${storeName} API completada en ${storeTime}ms - ${results.length} resultados`);
-        return results;
-      } catch (error) {
-        console.warn(`⚠️ ${storeName} API falló, será incluida en Puppeteer:`, error);
-        // If direct API fails, it will be handled by puppeteer
-        return [];
-      }
-    });
+  // All stores now have direct APIs - run them all in parallel
+  const directApiPromises = Object.entries(capabilities).map(async ([storeName, _]) => {
+    const storeStart = Date.now();
+    try {
+      console.log(`⚡ Buscando en ${storeName} con API directa...`);
+      const results = await searchStoreDirectApi(storeName, cardName);
+      const storeTime = Date.now() - storeStart;
+      storeTimings[storeName] = storeTime;
+      directApiStores.push(storeName);
+      console.log(`✅ ${storeName} API completada en ${storeTime}ms - ${results.length} resultados`);
+      return results;
+    } catch (error) {
+      console.warn(`⚠️ ${storeName} API falló:`, error);
+      const storeTime = Date.now() - storeStart;
+      storeTimings[storeName] = storeTime;
+      return [];
+    }
+  });
 
-  // Execute direct API searches
+  // Execute all direct API searches in parallel
   const directApiResults = await Promise.allSettled(directApiPromises);
   directApiResults.forEach((result) => {
     if (result.status === 'fulfilled') {
       allResults.push(...result.value);
     }
   });
-
-  // Phase 2: Puppeteer for remaining stores
-  const puppeteerStoreNames = Object.entries(capabilities)
-    .filter(([_, config]) => !config.hasDirectApi)
-    .map(([storeName, _]) => storeName);
-  
-  // Add failed direct API stores to puppeteer list
-  const failedDirectApiStores = Object.entries(capabilities)
-    .filter(([storeName, config]) => {
-      return config.hasDirectApi && !directApiStores.includes(storeName);
-    })
-    .map(([storeName, _]) => storeName);
-
-  const storesToScrape = [...puppeteerStoreNames, ...failedDirectApiStores];
-
-  if (storesToScrape.length > 0) {
-    try {
-      console.log(`🤖 Iniciando Puppeteer para tiendas: ${storesToScrape.join(', ')}`);
-      const puppeteerStart = Date.now();
-      const puppeteerResponse = await searchCardInAllStores(cardName);
-      const puppeteerTime = Date.now() - puppeteerStart;
-      
-      // Filter results to only include stores that need puppeteer
-      const puppeteerResults = puppeteerResponse.results.filter(result => 
-        storesToScrape.includes(result.store)
-      );
-      
-      allResults.push(...puppeteerResults);
-      puppeteerStores.push(...storesToScrape);
-      
-      // Estimate timing per store for puppeteer
-      const timePerStore = puppeteerTime / storesToScrape.length;
-      storesToScrape.forEach(store => {
-        storeTimings[store] = timePerStore;
-      });
-      
-      console.log(`✅ Puppeteer completado en ${puppeteerTime}ms - ${puppeteerResults.length} resultados`);
-    } catch (error) {
-      console.error('❌ Error en Puppeteer:', error);
-      // Continue with direct API results only
-    }
-  }
 
   const totalTime = Date.now() - startTime;
   
@@ -121,17 +77,17 @@ export const searchCardHybrid = async (cardName: string): Promise<HybridSearchRe
     return priceA - priceB;
   });
 
-  console.log(`🎉 Búsqueda híbrida completada en ${totalTime}ms`);
-  console.log(`📊 APIs directas: ${directApiStores.length} | Puppeteer: ${puppeteerStores.length}`);
+  console.log(`🎉 Búsqueda 100% APIs directas completada en ${totalTime}ms`);
+  console.log(`📊 APIs directas utilizadas: ${directApiStores.length} de ${Object.keys(capabilities).length}`);
 
   return {
     results: sortedResults,
     isRealScraping: true,
-    message: `Búsqueda híbrida completada. ${directApiStores.length} tienda(s) con API directa, ${puppeteerStores.length} con Puppeteer. Total: ${sortedResults.length} resultados.`,
+    message: `Búsqueda 100% APIs directas completada. ${directApiStores.length} tienda(s) consultadas. Total: ${sortedResults.length} resultados.`,
     timestamp: new Date().toISOString(),
     methodsUsed: {
       directApi: directApiStores,
-      puppeteer: puppeteerStores
+      puppeteer: [] // No longer used
     },
     performance: {
       totalTime,
@@ -141,7 +97,7 @@ export const searchCardHybrid = async (cardName: string): Promise<HybridSearchRe
   };
 };
 
-// Health check for hybrid system
+// Health check for 100% direct API system
 export const checkHybridSystemHealth = async (): Promise<{
   directApis: { [store: string]: boolean };
   puppeteerAvailable: boolean;
@@ -150,20 +106,22 @@ export const checkHybridSystemHealth = async (): Promise<{
   const capabilities = getStoreApiCapabilities();
   const directApiHealth: { [store: string]: boolean } = {};
   
-  // Test direct APIs
-  for (const [storeName, config] of Object.entries(capabilities)) {
-    if (config.hasDirectApi) {
-      try {
-        // Quick test search
-        await searchStoreDirectApi(storeName, 'test');
-        directApiHealth[storeName] = true;
-      } catch (error) {
-        directApiHealth[storeName] = false;
-      }
+  // Test all direct APIs (all stores now have them)
+  for (const [storeName, _] of Object.entries(capabilities)) {
+    try {
+      // Quick test search with timeout
+      await Promise.race([
+        searchStoreDirectApi(storeName, 'test'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+      ]);
+      directApiHealth[storeName] = true;
+    } catch (error) {
+      console.warn(`Health check failed for ${storeName}:`, error);
+      directApiHealth[storeName] = false;
     }
   }
   
-  // Test puppeteer (import the health check from original service)
+  // Puppeteer is legacy but we'll check if available
   let puppeteerAvailable = false;
   try {
     const { checkScraperHealth } = await import('./cardScraper');
@@ -172,7 +130,9 @@ export const checkHybridSystemHealth = async (): Promise<{
     puppeteerAvailable = false;
   }
   
-  const overallHealth = Object.values(directApiHealth).some(healthy => healthy) || puppeteerAvailable;
+  // Overall health: at least 3 out of 4 APIs working
+  const workingApis = Object.values(directApiHealth).filter(Boolean).length;
+  const overallHealth = workingApis >= 3;
   
   return {
     directApis: directApiHealth,

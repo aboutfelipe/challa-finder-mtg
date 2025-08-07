@@ -45,8 +45,8 @@ const Index = () => {
       }
 
       toast({
-        title: "🚀 Iniciando búsqueda híbrida",
-        description: `Buscando "${cardName}" usando: ${availableMethods.join(' + ')}`,
+        title: "🚀 Iniciando búsqueda 100% APIs directas",
+        description: `Buscando "${cardName}" en todas las tiendas con velocidad máxima`,
       });
       
       const searchResponse: HybridSearchResponse = await searchCardHybrid(cardName);
@@ -109,11 +109,11 @@ const Index = () => {
                       ? 'bg-green-900/20 text-green-400 border border-green-500/30' 
                       : 'bg-red-900/20 text-red-400 border border-red-500/30'
                   }`}>
-                    {isRealScraping ? '🟢 Búsqueda Híbrida Activa' : '🔴 Usando Datos Simulados'}
+                    {isRealScraping ? '⚡ Sistema 100% APIs Directas' : '🔴 Usando Datos Simulados'}
                   </div>
                   {searchMethod && (
                     <div className="text-xs text-muted-foreground">
-                      {searchMethod}
+                      APIs Directas: {searchMethod.split('|')[0].split(':')[1].trim()} | Sin limitaciones de velocidad
                     </div>
                   )}
                 </div>
