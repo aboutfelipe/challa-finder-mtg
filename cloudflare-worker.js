@@ -88,7 +88,7 @@ async function handleMagicsur(request, corsHeaders) {
     });
   }
 
-  const magicsurUrl = 'https://magicsur.cl/wp-admin/admin-ajax.php';
+  const magicsurUrl = 'https://www.cartasmagicsur.cl/wp-admin/admin-ajax.php';
   const formData = new FormData();
   formData.append('action', 'aws_action');
   formData.append('keyword', cardName);
@@ -97,17 +97,38 @@ async function handleMagicsur(request, corsHeaders) {
     method: 'POST',
     body: formData,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Referer': 'https://magicsur.cl/',
-      'Origin': 'https://magicsur.cl',
-    }
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://www.cartasmagicsur.cl/',
+      'Origin': 'https://www.cartasmagicsur.cl',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'es-CL,es;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    redirect: 'follow'
   });
 
+  // Check if we were redirected to captcha
+  if (response.url.includes('sgcaptcha') || response.url.includes('captcha')) {
+    console.log('Magic Sur redirected to captcha:', response.url);
+    return new Response(JSON.stringify({ 
+      error: 'Magic Sur blocked request - captcha detected',
+      redirectUrl: response.url 
+    }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
   if (!response.ok) {
+    console.log('Magic Sur API error:', response.status, response.statusText);
     throw new Error(`Magic Sur API error: ${response.status}`);
   }
 
   const data = await response.text();
+  console.log('Magic Sur response length:', data.length);
   
   return new Response(data, {
     headers: { ...corsHeaders, 'Content-Type': 'text/html' }
