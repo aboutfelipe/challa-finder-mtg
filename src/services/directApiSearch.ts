@@ -2,6 +2,7 @@ import { CardResult } from "@/components/SearchResults";
 
 // Cloudflare Worker base URL - replace with your actual Worker URL
 const WORKER_BASE_URL = 'https://challa-finder-mtg.aboutfelipe.workers.dev';
+const FALLBACK_SERVER_URL = 'http://localhost:3001';
 
 // Interface for different API search methods
 export interface ApiSearchResult {
@@ -10,16 +11,68 @@ export interface ApiSearchResult {
   responseTime: number;
 }
 
+// Timeouts and circuit breaker configuration
+const TIMEOUTS = {
+  WORKER: 3000,     // 3 seconds for Cloudflare Worker
+  DIRECT_API: 2000, // 2 seconds for direct API calls
+  SERVER: 2000      // 2 seconds for server fallback
+};
+
+// Circuit breaker for failing stores
+const circuitBreaker = {
+  failures: new Map<string, { count: number; lastFailed: number }>(),
+  
+  shouldSkip(storeName: string): boolean {
+    const failure = this.failures.get(storeName);
+    if (!failure) return false;
+    
+    // Skip if 3+ failures in last 5 minutes
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    return failure.count >= 3 && failure.lastFailed > fiveMinutesAgo;
+  },
+  
+  recordFailure(storeName: string) {
+    const existing = this.failures.get(storeName) || { count: 0, lastFailed: 0 };
+    this.failures.set(storeName, {
+      count: existing.count + 1,
+      lastFailed: Date.now()
+    });
+  },
+  
+  recordSuccess(storeName: string) {
+    this.failures.delete(storeName);
+  }
+};
+
+// Configuration to control fallback behavior
+const SEARCH_CONFIG = {
+  USE_ONLY_WORKERS: false, // Set to true to disable API/server fallbacks
+  ENABLE_CIRCUIT_BREAKER: true
+};
+
 // PayToWin with Cloudflare Worker priority
 export const searchPaytowinDirect = async (cardName: string): Promise<CardResult[]> => {
+  console.log('🔍 PayToWin: Starting direct search for:', cardName);
+  
+  // Check circuit breaker
+  if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER && circuitBreaker.shouldSkip('paytowin')) {
+    console.log('⚡ PayToWin: Skipped due to circuit breaker');
+    return [];
+  }
+
   try {
     console.log('🔍 PayToWin: Attempting Cloudflare Worker...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.WORKER);
+    
     const workerResponse = await fetch(`${WORKER_BASE_URL}/paytowin?q=${encodeURIComponent(cardName)}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (workerResponse.ok) {
       const data = await workerResponse.json();
@@ -70,16 +123,29 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
         });
 
         console.log(`✅ PayToWin: Found ${results.length} results via Cloudflare Worker`);
+        circuitBreaker.recordSuccess('paytowin');
         return results;
       }
     }
   } catch (error) {
     console.log('⚠️ PayToWin: Cloudflare Worker failed, trying direct API...', error);
+    if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER) {
+      circuitBreaker.recordFailure('paytowin');
+    }
+  }
+
+  // Return early if using only workers
+  if (SEARCH_CONFIG.USE_ONLY_WORKERS) {
+    console.log('⚙️ PayToWin: Skipping fallbacks (USE_ONLY_WORKERS enabled)');
+    return [];
   }
 
   // Fallback to direct Shopify API
   try {
     console.log('🔍 PayToWin: Attempting direct Shopify API call...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DIRECT_API);
+    
     const searchUrl = `https://www.paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
     
     const response = await fetch(searchUrl, {
@@ -89,7 +155,9 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
       mode: 'cors',
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
@@ -135,6 +203,7 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
       });
 
       console.log(`✅ PayToWin: Found ${results.length} results via direct API`);
+      circuitBreaker.recordSuccess('paytowin');
       return results;
     }
   } catch (error) {
@@ -143,23 +212,28 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
 
   // Final fallback to server endpoint
   try {
-    const serverResponse = await fetch('/api/paytowin-direct', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ cardName }),
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SERVER);
+    
+    const serverResponse = await fetch(`${FALLBACK_SERVER_URL}/api/search/paytowin?q=${encodeURIComponent(cardName)}`, {
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (serverResponse.ok) {
       const results = await serverResponse.json();
       console.log(`✅ PayToWin: Found ${results.length} results via server fallback`);
+      circuitBreaker.recordSuccess('paytowin');
       return results;
     }
   } catch (serverError) {
     console.error('❌ PayToWin: All methods failed:', serverError);
   }
 
+  console.log('💥 PayToWin: All methods failed');
+  if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER) {
+    circuitBreaker.recordFailure('paytowin');
+  }
   return [];
 };
 
@@ -313,14 +387,27 @@ export const searchLacriptaDirect = async (cardName: string): Promise<CardResult
 
 // Magic Sur with Cloudflare Worker priority
 export const searchMagicsurDirect = async (cardName: string): Promise<CardResult[]> => {
+  console.log('🔍 Magic Sur: Starting direct search for:', cardName);
+  
+  // Check circuit breaker
+  if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER && circuitBreaker.shouldSkip('magicsur')) {
+    console.log('⚡ Magic Sur: Skipped due to circuit breaker');
+    return [];
+  }
+
   try {
     console.log('🔍 Magic Sur: Attempting Cloudflare Worker...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.WORKER);
+    
     const workerResponse = await fetch(`${WORKER_BASE_URL}/magicsur?q=${encodeURIComponent(cardName)}`, {
       method: 'GET',
       headers: {
         'Accept': 'text/html',
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (workerResponse.ok) {
       const data = await workerResponse.json();
@@ -351,15 +438,28 @@ export const searchMagicsurDirect = async (cardName: string): Promise<CardResult
       });
 
       console.log(`✅ Magic Sur: Found ${results.length} results via Cloudflare Worker`);
+      circuitBreaker.recordSuccess('magicsur');
       return results;
     }
   } catch (error) {
     console.log('⚠️ Magic Sur: Cloudflare Worker failed, trying direct API...', error);
+    if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER) {
+      circuitBreaker.recordFailure('magicsur');
+    }
+  }
+
+  // Return early if using only workers
+  if (SEARCH_CONFIG.USE_ONLY_WORKERS) {
+    console.log('⚙️ Magic Sur: Skipping fallbacks (USE_ONLY_WORKERS enabled)');
+    return [];
   }
 
   // Fallback to direct WordPress AJAX
   try {
     console.log('🔍 Magic Sur: Attempting direct WordPress AJAX call...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DIRECT_API);
+    
     const searchUrl = `https://www.cartasmagicsur.cl/wp-admin/admin-ajax.php?action=porto_ajax_search_posts&nonce=f4be613acf&post_type=product&query=${encodeURIComponent(cardName)}`;
     
     const response = await fetch(searchUrl, {
@@ -367,8 +467,10 @@ export const searchMagicsurDirect = async (cardName: string): Promise<CardResult
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
@@ -398,6 +500,7 @@ export const searchMagicsurDirect = async (cardName: string): Promise<CardResult
       });
 
       console.log(`✅ Magic Sur: Found ${results.length} results via direct API`);
+      circuitBreaker.recordSuccess('magicsur');
       return results;
     }
   } catch (error) {
@@ -406,23 +509,28 @@ export const searchMagicsurDirect = async (cardName: string): Promise<CardResult
 
   // Final fallback to server endpoint
   try {
-    const serverResponse = await fetch('/api/magicsur-direct', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ cardName }),
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SERVER);
+    
+    const serverResponse = await fetch(`${FALLBACK_SERVER_URL}/api/search/magicsur?q=${encodeURIComponent(cardName)}`, {
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (serverResponse.ok) {
       const results = await serverResponse.json();
       console.log(`✅ Magic Sur: Found ${results.length} results via server fallback`);
+      circuitBreaker.recordSuccess('magicsur');
       return results;
     }
   } catch (serverError) {
     console.error('❌ Magic Sur: All methods failed:', serverError);
   }
 
+  console.log('💥 Magic Sur: All methods failed');
+  if (SEARCH_CONFIG.ENABLE_CIRCUIT_BREAKER) {
+    circuitBreaker.recordFailure('magicsur');
+  }
   return [];
 };
 
