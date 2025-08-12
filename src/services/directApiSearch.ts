@@ -1,5 +1,8 @@
 import { CardResult } from "@/components/SearchResults";
 
+// Cloudflare Worker base URL - replace with your actual Worker URL
+const WORKER_BASE_URL = 'https://your-worker-name.your-subdomain.workers.dev';
+
 // Interface for different API search methods
 export interface ApiSearchResult {
   results: CardResult[];
@@ -7,10 +10,76 @@ export interface ApiSearchResult {
   responseTime: number;
 }
 
-// PayToWin Shopify API implementation
+// PayToWin with Cloudflare Worker priority
 export const searchPaytowinDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
-    // First, try the direct API call
+    console.log('🔍 PayToWin: Attempting Cloudflare Worker...');
+    const workerResponse = await fetch(`${WORKER_BASE_URL}/paytowin?q=${encodeURIComponent(cardName)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+
+    if (workerResponse.ok) {
+      const data = await workerResponse.json();
+      
+      if (data.resources?.results?.products) {
+        const products = data.resources.results.products;
+        
+        const results = products.slice(0, 10).map((product: any) => {
+          // Extract set information from the body HTML or tags
+          let extractedSet = "Magic Singles";
+          if (product.body) {
+            const setMatch = product.body.match(/<td>Set:<\/td>\s*<td>([^<]+)<\/td>/);
+            if (setMatch) {
+              extractedSet = setMatch[1].trim();
+            }
+          }
+
+          // Extract condition from tags if available
+          let condition = "Near Mint";
+          if (product.tags && Array.isArray(product.tags)) {
+            const conditionTags = product.tags.filter((tag: string) => 
+              tag.toLowerCase().includes('played') || 
+              tag.toLowerCase().includes('damaged') || 
+              tag.toLowerCase().includes('mint')
+            );
+            if (conditionTags.length > 0) {
+              condition = conditionTags[0];
+            }
+          }
+
+          // Convert price from centavos to CLP
+          const priceInCLP = product.price ? Math.floor(Number(product.price)) : 0;
+          const formattedPrice = priceInCLP > 0 ? 
+            `$${priceInCLP.toLocaleString('es-CL')} CLP` : 
+            "Precio no disponible";
+
+          return {
+            store: "Pay2Win",
+            storeUrl: "https://www.paytowin.cl",
+            cardName: product.title || cardName,
+            price: formattedPrice,
+            inStock: product.available || false,
+            productUrl: `https://www.paytowin.cl${product.url}`,
+            imageUrl: product.featured_image?.url || product.image || undefined,
+            condition: condition,
+            set: extractedSet
+          };
+        });
+
+        console.log(`✅ PayToWin: Found ${results.length} results via Cloudflare Worker`);
+        return results;
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ PayToWin: Cloudflare Worker failed, trying direct API...', error);
+  }
+
+  // Fallback to direct Shopify API
+  try {
+    console.log('🔍 PayToWin: Attempting direct Shopify API call...');
     const searchUrl = `https://www.paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
     
     const response = await fetch(searchUrl, {
@@ -22,80 +91,76 @@ export const searchPaytowinDirect = async (cardName: string): Promise<CardResult
       mode: 'cors',
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (response.ok) {
+      const data = await response.json();
+      const products = data.resources?.results?.products || [];
 
-    const data = await response.json();
-    const products = data.resources?.results?.products || [];
-
-    return products.slice(0, 10).map((product: any) => {
-      // Extract set information from the body HTML or tags
-      let extractedSet = "Magic Singles";
-      if (product.body) {
-        const setMatch = product.body.match(/<td>Set:<\/td>\s*<td>([^<]+)<\/td>/);
-        if (setMatch) {
-          extractedSet = setMatch[1].trim();
+      const results = products.slice(0, 10).map((product: any) => {
+        let extractedSet = "Magic Singles";
+        if (product.body) {
+          const setMatch = product.body.match(/<td>Set:<\/td>\s*<td>([^<]+)<\/td>/);
+          if (setMatch) {
+            extractedSet = setMatch[1].trim();
+          }
         }
-      }
 
-      // Extract condition from tags if available (looking for condition-related tags)
-      let condition = "Near Mint";
-      if (product.tags && Array.isArray(product.tags)) {
-        const conditionTags = product.tags.filter((tag: string) => 
-          tag.toLowerCase().includes('played') || 
-          tag.toLowerCase().includes('damaged') || 
-          tag.toLowerCase().includes('mint')
-        );
-        if (conditionTags.length > 0) {
-          condition = conditionTags[0];
+        let condition = "Near Mint";
+        if (product.tags && Array.isArray(product.tags)) {
+          const conditionTags = product.tags.filter((tag: string) => 
+            tag.toLowerCase().includes('played') || 
+            tag.toLowerCase().includes('damaged') || 
+            tag.toLowerCase().includes('mint')
+          );
+          if (conditionTags.length > 0) {
+            condition = conditionTags[0];
+          }
         }
-      }
 
-      // Convert price from centavos to CLP
-      const priceInCLP = product.price ? Math.floor(Number(product.price)) : 0;
-      const formattedPrice = priceInCLP > 0 ? 
-        `$${priceInCLP.toLocaleString('es-CL')} CLP` : 
-        "Precio no disponible";
+        const priceInCLP = product.price ? Math.floor(Number(product.price)) : 0;
+        const formattedPrice = priceInCLP > 0 ? 
+          `$${priceInCLP.toLocaleString('es-CL')} CLP` : 
+          "Precio no disponible";
 
-      return {
-        store: "Pay2Win",
-        storeUrl: "https://www.paytowin.cl",
-        cardName: product.title || cardName,
-        price: formattedPrice,
-        inStock: product.available || false,
-        productUrl: `https://www.paytowin.cl${product.url}`,
-        imageUrl: product.featured_image?.url || product.image || undefined,
-        condition: condition,
-        set: extractedSet
-      };
-    });
-
-  } catch (error) {
-    console.log('Direct PayToWin API failed, trying server fallback...', error);
-    
-    // CORS fallback: use our server endpoint
-    try {
-      const serverResponse = await fetch('/api/paytowin-direct', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cardName }),
+        return {
+          store: "Pay2Win",
+          storeUrl: "https://www.paytowin.cl",
+          cardName: product.title || cardName,
+          price: formattedPrice,
+          inStock: product.available || false,
+          productUrl: `https://www.paytowin.cl${product.url}`,
+          imageUrl: product.featured_image?.url || product.image || undefined,
+          condition: condition,
+          set: extractedSet
+        };
       });
 
-      if (!serverResponse.ok) {
-        throw new Error(`Server API error: ${serverResponse.status}`);
-      }
-
-      const results = await serverResponse.json();
+      console.log(`✅ PayToWin: Found ${results.length} results via direct API`);
       return results;
-
-    } catch (serverError) {
-      console.error('Server fallback also failed:', serverError);
-      return [];
     }
+  } catch (error) {
+    console.log('⚠️ PayToWin: Direct API failed, trying server fallback...', error);
   }
+
+  // Final fallback to server endpoint
+  try {
+    const serverResponse = await fetch('/api/paytowin-direct', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cardName }),
+    });
+
+    if (serverResponse.ok) {
+      const results = await serverResponse.json();
+      console.log(`✅ PayToWin: Found ${results.length} results via server fallback`);
+      return results;
+    }
+  } catch (serverError) {
+    console.error('❌ PayToWin: All methods failed:', serverError);
+  }
+
+  return [];
 };
 
 // TCGMatch API implementation
@@ -246,10 +311,55 @@ export const searchLacriptaDirect = async (cardName: string): Promise<CardResult
   }
 };
 
-// Magic Sur WordPress/WooCommerce search API implementation
+// Magic Sur with Cloudflare Worker priority
 export const searchMagicsurDirect = async (cardName: string): Promise<CardResult[]> => {
   try {
-    // Try direct API call first
+    console.log('🔍 Magic Sur: Attempting Cloudflare Worker...');
+    const workerResponse = await fetch(`${WORKER_BASE_URL}/magicsur?q=${encodeURIComponent(cardName)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html',
+      }
+    });
+
+    if (workerResponse.ok) {
+      const data = await workerResponse.json();
+      const products = data.suggestions || [];
+
+      const results = products.slice(0, 10).map((product: any) => {
+        // Extract price from HTML
+        let priceValue = "Precio no disponible";
+        if (product.price) {
+          const priceMatch = product.price.match(/(\d+\.?\d*)/);
+          if (priceMatch) {
+            const price = parseFloat(priceMatch[1].replace('.', ''));
+            priceValue = `$${price.toLocaleString('es-CL')} CLP`;
+          }
+        }
+
+        return {
+          store: "Magic Sur",
+          storeUrl: "https://www.cartasmagicsur.cl",
+          cardName: product.value || cardName,
+          price: priceValue,
+          inStock: product.instock || false,
+          productUrl: product.url || "https://www.cartasmagicsur.cl",
+          imageUrl: product.img || undefined,
+          condition: "Near Mint",
+          set: product.categoria || "Magic Singles"
+        };
+      });
+
+      console.log(`✅ Magic Sur: Found ${results.length} results via Cloudflare Worker`);
+      return results;
+    }
+  } catch (error) {
+    console.log('⚠️ Magic Sur: Cloudflare Worker failed, trying direct API...', error);
+  }
+
+  // Fallback to direct WordPress AJAX
+  try {
+    console.log('🔍 Magic Sur: Attempting direct WordPress AJAX call...');
     const searchUrl = `https://www.cartasmagicsur.cl/wp-admin/admin-ajax.php?action=porto_ajax_search_posts&nonce=f4be613acf&post_type=product&query=${encodeURIComponent(cardName)}`;
     
     const response = await fetch(searchUrl, {
@@ -260,62 +370,60 @@ export const searchMagicsurDirect = async (cardName: string): Promise<CardResult
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (response.ok) {
+      const data = await response.json();
+      const products = data.suggestions || [];
 
-    const data = await response.json();
-    const products = data.suggestions || [];
-
-    return products.slice(0, 10).map((product: any) => {
-      // Extract price from HTML
-      let priceValue = "Precio no disponible";
-      if (product.price) {
-        const priceMatch = product.price.match(/(\d+\.?\d*)/);
-        if (priceMatch) {
-          const price = parseFloat(priceMatch[1].replace('.', ''));
-          priceValue = `$${price.toLocaleString('es-CL')} CLP`;
+      const results = products.slice(0, 10).map((product: any) => {
+        let priceValue = "Precio no disponible";
+        if (product.price) {
+          const priceMatch = product.price.match(/(\d+\.?\d*)/);
+          if (priceMatch) {
+            const price = parseFloat(priceMatch[1].replace('.', ''));
+            priceValue = `$${price.toLocaleString('es-CL')} CLP`;
+          }
         }
-      }
 
-      return {
-        store: "Magic Sur",
-        storeUrl: "https://www.cartasmagicsur.cl",
-        cardName: product.value || cardName,
-        price: priceValue,
-        inStock: product.instock || false,
-        productUrl: product.url || "https://www.cartasmagicsur.cl",
-        imageUrl: product.img || undefined,
-        condition: "Near Mint", // Default condition
-        set: product.categoria || "Magic Singles"
-      };
-    });
-
-  } catch (error) {
-    console.log('Direct Magic Sur API failed, trying server fallback...', error);
-    
-    // CORS fallback: use our server endpoint
-    try {
-      const serverResponse = await fetch('/api/magicsur-direct', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cardName }),
+        return {
+          store: "Magic Sur",
+          storeUrl: "https://www.cartasmagicsur.cl",
+          cardName: product.value || cardName,
+          price: priceValue,
+          inStock: product.instock || false,
+          productUrl: product.url || "https://www.cartasmagicsur.cl",
+          imageUrl: product.img || undefined,
+          condition: "Near Mint",
+          set: product.categoria || "Magic Singles"
+        };
       });
 
-      if (!serverResponse.ok) {
-        throw new Error(`Server API error: ${serverResponse.status}`);
-      }
-
-      const results = await serverResponse.json();
+      console.log(`✅ Magic Sur: Found ${results.length} results via direct API`);
       return results;
-
-    } catch (serverError) {
-      console.error('Server fallback also failed:', serverError);
-      return [];
     }
+  } catch (error) {
+    console.log('⚠️ Magic Sur: Direct API failed, trying server fallback...', error);
   }
+
+  // Final fallback to server endpoint
+  try {
+    const serverResponse = await fetch('/api/magicsur-direct', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cardName }),
+    });
+
+    if (serverResponse.ok) {
+      const results = await serverResponse.json();
+      console.log(`✅ Magic Sur: Found ${results.length} results via server fallback`);
+      return results;
+    }
+  } catch (serverError) {
+    console.error('❌ Magic Sur: All methods failed:', serverError);
+  }
+
+  return [];
 };
 
 // Store API capabilities detection
