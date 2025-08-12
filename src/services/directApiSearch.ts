@@ -1,7 +1,7 @@
 import { CardResult } from "@/components/SearchResults";
 
 // Cloudflare Worker base URL - replace with your actual Worker URL
-const WORKER_BASE_URL = 'challa-finder-mtg.aboutfelipe.workers.dev';
+const WORKER_BASE_URL = 'https://challa-finder-mtg.aboutfelipe.workers.dev';
 
 // Interface for different API search methods
 export interface ApiSearchResult {
