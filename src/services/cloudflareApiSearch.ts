@@ -298,10 +298,10 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
 // Store information
 export const getStoreInfo = () => {
   return [
-    { name: "Catlotus", url: "https://catlotus.cl" , status: "En vivo"},
-    { name: "Pay2Win", url: "https://www.paytowin.cl" , status: "En vivo  "},
-    { name: "TCGMatch", url: "https://tcgmatch.cl" , status: "En vivo"},
-    { name: "Tienda La Comarca", url: "https://www.tiendalacomarca.cl" , status: "En vivo"},
+    { name: "Catlotus", url: "https://catlotus.cl" , status: "Disponible"},
+    { name: "Pay2Win", url: "https://www.paytowin.cl" , status: "Disponible"},
+    { name: "TCGMatch", url: "https://tcgmatch.cl" , status: "Disponible"},
+    { name: "Tienda La Comarca", url: "https://www.tiendalacomarca.cl" , status: "Disponible"},
     { name: "La Cripta", url: "https://lacripta.cl" , status: "Próximamente"},
     { name: "Magic Sur", url: "https://cartasmagicsur.cl" , status: "Próximamente"},
     { name: "Piedra Bruja", url: "https://piedrabruja.cl" , status: "Próximamente"},

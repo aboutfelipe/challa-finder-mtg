@@ -19,7 +19,7 @@ const Index = () => {
     try {
       toast({
         title: "🚀 Iniciando búsqueda",
-        description: `Buscando "${cardName}" en todas las tiendas via Cloudflare Workers`
+        description: `Buscando "${cardName}" en todas las tiendas disponibles`
       });
 
       const results = await searchAllStores(cardName);
