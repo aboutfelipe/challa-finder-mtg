@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, XCircle } from "lucide-react";
  
 
 interface CardSearchFormProps {
@@ -119,10 +119,28 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
             onKeyDown={onKeyDown}
             onBlur={() => setTimeout(() => { setOpen(false); setHighlight(-1); }, 120)}
             ref={inputRef}
-            className="w-full pl-12 pr-4 py-4 text-base bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-0 transition-all duration-200 shadow-sm"
+            className="w-full pl-12 pr-12 py-4 text-base bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-0 transition-all duration-200 shadow-sm"
             disabled={isLoading}
           />
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+
+          {cardName.trim().length > 0 && (
+            <button
+              type="button"
+              aria-label="Limpiar"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setCardName("");
+                setSuggestions([]);
+                setOpen(false);
+                setHighlight(-1);
+                inputRef.current?.focus();
+              }}
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          )}
 
           {/* Suggestions dropdown */}
           {open && suggestions.length > 0 && (
