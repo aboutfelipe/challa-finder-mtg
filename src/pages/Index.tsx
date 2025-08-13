@@ -73,7 +73,7 @@ const Index = () => {
             <div className="mt-16">
               <div className="mb-4 text-center">
                 <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-900/20 text-green-400 border border-green-500/30">
-                  ⚡ Cloudflare Workers - Velocidad Máxima
+                  ⚡ Buscando con Velocidad Máxima
                 </div>
               </div>
               <SearchResults results={searchResults} searchTerm={lastSearchTerm} />
