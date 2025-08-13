@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker for MTG Card API Proxy - UPDATED VERSION
+ * Cloudflare Worker for MTG Card API Proxy - UPDATED VERSION WITH CUSTOM TYPE FILTERING
  * Handles CORS and acts as a proxy for various card store APIs
  */
 
@@ -37,6 +37,8 @@ export default {
         return await handleLacomarca(request, corsHeaders);
       } else if (path.startsWith('/piedrabruja')) {
         return await handlePiedrabruja(request, corsHeaders);
+      } else if (path.startsWith('/afkstore')) {
+        return await handleAfkstore(request, corsHeaders);
       }
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -53,7 +55,7 @@ export default {
 async function handlePaytowin(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -62,7 +64,7 @@ async function handlePaytowin(request, corsHeaders) {
   }
 
   const shopifyUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
-  
+
   const response = await fetch(shopifyUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0',
@@ -75,7 +77,14 @@ async function handlePaytowin(request, corsHeaders) {
   }
 
   const data = await response.json();
-  
+
+  // Filtrar productos cuyo type sea "MTG Single"
+  if (data.resources?.results?.products) {
+    data.resources.results.products = data.resources.results.products.filter(p =>
+      p.type === "MTG Single"
+    );
+  }
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
@@ -84,7 +93,7 @@ async function handlePaytowin(request, corsHeaders) {
 async function handleTcgmatch(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -93,7 +102,7 @@ async function handleTcgmatch(request, corsHeaders) {
   }
 
   const tcgmatchUrl = `https://api.tcgmatch.cl/products/search?palabra=${encodeURIComponent(cardName)}&tcg=magic`;
-  
+
   const response = await fetch(tcgmatchUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0',
@@ -106,7 +115,7 @@ async function handleTcgmatch(request, corsHeaders) {
   }
 
   const data = await response.json();
-  
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
@@ -115,7 +124,7 @@ async function handleTcgmatch(request, corsHeaders) {
 async function handleCatlotus(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -124,7 +133,7 @@ async function handleCatlotus(request, corsHeaders) {
   }
 
   const catlotusUrl = 'https://catlotus.cl/api/search/card';
-  
+
   const response = await fetch(catlotusUrl, {
     method: 'POST',
     headers: {
@@ -144,7 +153,7 @@ async function handleCatlotus(request, corsHeaders) {
   }
 
   const data = await response.json();
-  
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
@@ -153,7 +162,7 @@ async function handleCatlotus(request, corsHeaders) {
 async function handleLacripta(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -162,7 +171,7 @@ async function handleLacripta(request, corsHeaders) {
   }
 
   const lacriptaUrl = `https://lacriptastore.com/wp-json/wc/v3/products?search=${encodeURIComponent(cardName)}`;
-  
+
   const response = await fetch(lacriptaUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0',
@@ -175,7 +184,7 @@ async function handleLacripta(request, corsHeaders) {
   }
 
   const data = await response.json();
-  
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
@@ -184,7 +193,7 @@ async function handleLacripta(request, corsHeaders) {
 async function handleMagicsur(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -210,9 +219,9 @@ async function handleMagicsur(request, corsHeaders) {
   });
 
   if (response.url.includes('captcha')) {
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Magic Sur blocked request - captcha detected',
-      redirectUrl: response.url 
+      redirectUrl: response.url
     }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -224,7 +233,7 @@ async function handleMagicsur(request, corsHeaders) {
   }
 
   const data = await response.text();
-  
+
   return new Response(data, {
     headers: { ...corsHeaders, 'Content-Type': 'text/html' }
   });
@@ -256,6 +265,13 @@ async function handleLacomarca(request, corsHeaders) {
 
   const data = await response.json();
 
+  // Filtrar productos cuyo type sea "MTG Single"
+  if (data.resources?.results?.products) {
+    data.resources.results.products = data.resources.results.products.filter(p =>
+      p.type === "MTG Single"
+    );
+  }
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
@@ -286,6 +302,51 @@ async function handlePiedrabruja(request, corsHeaders) {
   }
 
   const data = await response.json();
+
+  // Filtrar productos cuyo type sea "singlemtg"
+  if (data.resources?.results?.products) {
+    data.resources.results.products = data.resources.results.products.filter(p =>
+      p.type === "singlemtg"
+    );
+  }
+
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleAfkstore(request, corsHeaders) {
+  const url = new URL(request.url);
+  const cardName = url.searchParams.get('q');
+
+  if (!cardName) {
+    return new Response(JSON.stringify({ error: 'Missing card name' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const shopifyUrl = `https://afkstore.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
+
+  const response = await fetch(shopifyUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`AfkStore API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Filtrar productos cuyo type sea "Singles Magic"
+  if (data.resources?.results?.products) {
+    data.resources.results.products = data.resources.results.products.filter(p =>
+      p.type === "Singles Magic"
+    );
+  }
 
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
