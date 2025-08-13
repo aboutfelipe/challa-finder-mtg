@@ -97,6 +97,9 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
           50% { transform: translateX(25%); }
           100% { transform: translateX(100%); }
         }
+        /* Hide scrollbar but keep scroll on title containers */
+        .title-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .title-scroll::-webkit-scrollbar { display: none; height: 0; }
       `}</style>
       {/* Loading Progress */}
       {isLoading && (
@@ -194,9 +197,12 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                       )}
                     </div>
                     <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
-                      <div className="max-w-full overflow-x-auto sm:overflow-visible [-webkit-overflow-scrolling:touch]">
-                        <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
-                          {bestOffer.cardName}
+                      <div className="relative max-w-full sm:overflow-visible">
+                        <div className={`pointer-events-none absolute inset-y-0 right-0 w-4 sm:hidden bg-gradient-to-l ${isBestOverall ? 'from-green-100/90' : 'from-white/90'} to-transparent`} />
+                        <div className="max-w-full overflow-x-auto title-scroll [-webkit-overflow-scrolling:touch]">
+                          <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
+                            {bestOffer.cardName}
+                          </div>
                         </div>
                       </div>
                       <div className="text-xs text-gray-600 flex items-center gap-2">
@@ -249,9 +255,12 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                             )}
                           </div>
                           <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
-                            <div className="max-w-full overflow-x-auto sm:overflow-visible [-webkit-overflow-scrolling:touch]">
-                              <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
-                                {item.cardName}
+                            <div className="relative max-w-full sm:overflow-visible">
+                              <div className="pointer-events-none absolute inset-y-0 right-0 w-4 sm:hidden bg-gradient-to-l from-white/90 to-transparent" />
+                              <div className="max-w-full overflow-x-auto title-scroll [-webkit-overflow-scrolling:touch]">
+                                <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
+                                  {item.cardName}
+                                </div>
                               </div>
                             </div>
                             <div className="text-xs text-gray-600 flex items-center gap-2">
