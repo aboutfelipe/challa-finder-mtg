@@ -42,16 +42,19 @@ export const searchPaytowin = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/paytowin', cardName);
     
-    return data.map((item: any) => ({
+    // PayToWin returns Shopify format: { resources: { results: { products: [...] } } }
+    const products = data?.resources?.results?.products || [];
+    
+    return products.map((item: any) => ({
       store: "Pay2Win",
       storeUrl: "https://www.paytowin.cl",
-      cardName: item.name || cardName,
-      price: item.price,
-      inStock: item.stock > 0,
-      productUrl: item.url,
+      cardName: item.title || cardName,
+      price: item.price || 'N/A',
+      inStock: item.available === true,
+      productUrl: `https://paytowin.cl/products/${item.handle}`,
       imageUrl: item.image,
-      condition: item.condition,
-      set: item.set,
+      condition: 'N/A',
+      set: 'N/A',
     }));
   } catch (error) {
     console.error('PayToWin search failed:', error);
@@ -64,16 +67,19 @@ export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/tcgmatch', cardName);
     
-    return data.map((item: any) => ({
+    // TCGMatch returns array of products directly
+    const products = Array.isArray(data) ? data : [];
+    
+    return products.map((item: any) => ({
       store: "TCGMatch",
-      storeUrl: "https://tcgmatch.cl",
+      storeUrl: "https://tcgmatch.com",
       cardName: item.name || cardName,
-      price: item.price,
-      inStock: item.in_stock,
-      productUrl: item.url,
+      price: item.price || 'N/A',
+      inStock: item.in_stock === true,
+      productUrl: item.url || '#',
       imageUrl: item.image,
-      condition: item.condition,
-      set: item.set,
+      condition: item.condition || 'N/A',
+      set: item.set || 'N/A',
     }));
   } catch (error) {
     console.error('TCGMatch search failed:', error);
@@ -86,16 +92,19 @@ export const searchCatlotus = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/catlotus', cardName);
     
-    return data.map((item: any) => ({
+    // Catlotus returns array of products directly
+    const products = Array.isArray(data) ? data : [];
+    
+    return products.map((item: any) => ({
       store: "Catlotus",
       storeUrl: "https://catlotus.cl",
-      cardName: item.nombre || cardName,
-      price: item.precio,
-      inStock: item.stock > 0,
-      productUrl: item.url,
-      imageUrl: item.imagen,
-      condition: item.condicion,
-      set: item.set,
+      cardName: item.nombre || item.name || cardName,
+      price: item.precio || item.price || 'N/A',
+      inStock: (item.stock || 0) > 0,
+      productUrl: item.url || '#',
+      imageUrl: item.imagen || item.image,
+      condition: item.condicion || item.condition || 'N/A',
+      set: item.set || 'N/A',
     }));
   } catch (error) {
     console.error('Catlotus search failed:', error);
@@ -108,16 +117,19 @@ export const searchLacripta = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/lacripta', cardName);
     
-    return data.map((item: any) => ({
+    // La Cripta returns WooCommerce API format (array of products)
+    const products = Array.isArray(data) ? data : [];
+    
+    return products.map((item: any) => ({
       store: "La Cripta",
-      storeUrl: "https://lacripta.cl",
+      storeUrl: "https://lacriptastore.com",
       cardName: item.name || cardName,
-      price: item.price,
+      price: item.price || 'N/A',
       inStock: item.stock_status === 'instock',
-      productUrl: item.permalink,
+      productUrl: item.permalink || '#',
       imageUrl: item.images?.[0]?.src,
-      condition: item.condition,
-      set: item.set,
+      condition: 'N/A',
+      set: 'N/A',
     }));
   } catch (error) {
     console.error('La Cripta search failed:', error);
@@ -128,19 +140,24 @@ export const searchLacripta = async (cardName: string): Promise<CardResult[]> =>
 // Magic Sur search via Cloudflare Worker
 export const searchMagicsur = async (cardName: string): Promise<CardResult[]> => {
   try {
-    const data = await makeWorkerRequest('/magicsur', cardName);
+    // Magic Sur returns HTML, need to parse it
+    const response = await fetch(`${WORKER_BASE_URL}/magicsur?q=${encodeURIComponent(cardName)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Magic Sur Worker error: ${response.status}`);
+    }
+
+    const htmlData = await response.text();
     
-    return data.map((item: any) => ({
-      store: "Magic Sur",
-      storeUrl: "https://cartasmagicsur.cl",
-      cardName: item.name || cardName,
-      price: item.price,
-      inStock: item.stock > 0,
-      productUrl: item.url,
-      imageUrl: item.image,
-      condition: item.condition,
-      set: item.set,
-    }));
+    // For now, return empty array since HTML parsing would be complex
+    // Magic Sur can be implemented later if needed
+    console.log('Magic Sur returned HTML data, parsing not implemented yet');
+    return [];
   } catch (error) {
     console.error('Magic Sur search failed:', error);
     return [];
