@@ -28,7 +28,7 @@ const Index = () => {
       const inStockCount = results.filter(r => r.inStock).length;
       toast({
         title: "✅ Búsqueda completada",
-        description: `${inStockCount} productos con stock de ${results.length} resultados`
+        description: `${inStockCount} productos con stock`
       });
     } catch (error) {
       console.error("Search error:", error);
