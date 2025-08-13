@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, ShoppingCart, AlertCircle } from "lucide-react";
+import { ExternalLink, ShoppingCart, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export interface CardResult {
   store: string;
@@ -35,99 +35,119 @@ export const SearchResults = ({ results, searchTerm }: SearchResultsProps) => {
     );
   }
 
-  // Agrupar resultados por tienda
-  const groupedByStore = results.reduce((acc, r) => {
-    (acc[r.store] = acc[r.store] || []).push(r);
-    return acc;
-  }, {} as Record<string, CardResult[]>);
-
-  const totalStores = Array.from(new Set(results.map(r => r.store))).length;
-  const storesWithStock = Array.from(new Set(results.filter(r => r.inStock).map(r => r.store))).length;
+  const inStockResults = results.filter(result => result.inStock);
+  const outOfStockResults = results.filter(result => !result.inStock);
 
   return (
-    <section className="w-full max-w-6xl mx-auto space-y-6" aria-labelledby="results-title">
+    <div className="w-full max-w-6xl mx-auto space-y-6">
       <div className="text-center mb-8">
-        <h2 id="results-title" className="text-2xl font-bold mb-2">Resultados para "{searchTerm}"</h2>
+        <h2 className="text-2xl font-bold mb-2">Resultados para "{searchTerm}"</h2>
         <p className="text-muted-foreground">
-          {storesWithStock} tienda(s) con stock de {totalStores} consultadas
+          {inStockResults.length} tienda(s) con stock de {results.length} consultadas
         </p>
       </div>
 
-      {Object.entries(groupedByStore).map(([storeName, items]) => (
-        <Card key={storeName} className="bg-card/90 backdrop-blur-md border-border/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">{storeName}</CardTitle>
-              <a
-                href={items[0].storeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline inline-flex items-center gap-1"
-              >
-                Ir a la tienda <ExternalLink className="h-4 w-4" />
+      {/* Results with stock */}
+      {inStockResults.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-success flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5" />
+            Disponible ({inStockResults.length})
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {inStockResults.map((result, index) => (
+              <StoreCard key={index} result={result} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Results without stock */}
+      {outOfStockResults.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-muted-foreground flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Sin Stock ({outOfStockResults.length})
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {outOfStockResults.map((result, index) => (
+              <StoreCard key={index} result={result} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StoreCard = ({ result }: { result: CardResult }) => {
+  return (
+    <Card className={`bg-card/90 backdrop-blur-md border-border/50 transition-all duration-300 hover:shadow-ethereal ${
+      result.inStock ? 'border-success/30 shadow-success/10' : 'border-muted/30'
+    }`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold">{result.store}</CardTitle>
+          <Badge 
+            variant={result.inStock ? "default" : "secondary"}
+            className={result.inStock ? "bg-success text-success-foreground" : ""}
+          >
+            {result.inStock ? "En Stock" : "Sin Stock"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {result.imageUrl && (
+          <div className="relative w-full h-32 bg-muted/30 rounded-lg overflow-hidden">
+            <img
+              src={result.imageUrl}
+              alt={result.cardName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm line-clamp-2">{result.cardName}</h4>
+          {result.set && (
+            <p className="text-xs text-muted-foreground">Set: {result.set}</p>
+          )}
+          {result.condition && (
+            <p className="text-xs text-muted-foreground">Condición: {result.condition}</p>
+          )}
+          {result.price && (
+            <p className="text-lg font-bold text-accent">{result.price}</p>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {result.productUrl && (
+            <Button
+              size="sm"
+              className="flex-1 bg-magic-gradient hover:shadow-glow"
+              asChild
+            >
+              <a href={result.productUrl} target="_blank" rel="noopener noreferrer">
+                <ShoppingCart className="h-4 w-4 mr-1" />
+                Ver Carta
               </a>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Carta</TableHead>
-                    <TableHead>Set</TableHead>
-                    <TableHead>Condición</TableHead>
-                    <TableHead>Precio</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Enlace</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items
-                    .slice()
-                    .sort((a, b) => Number(b.inStock) - Number(a.inStock))
-                    .map((r, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="max-w-[260px]">
-                          <div className="flex items-center gap-3">
-                            {r.imageUrl && (
-                              <img
-                                src={r.imageUrl}
-                                alt={`${r.cardName} en ${storeName}`}
-                                className="h-12 w-9 object-cover rounded"
-                                loading="lazy"
-                              />
-                            )}
-                            <div className="line-clamp-2">{r.cardName}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{r.set || '-'}</TableCell>
-                        <TableCell>{r.condition || '-'}</TableCell>
-                        <TableCell className="font-semibold">{r.price || '-'}</TableCell>
-                        <TableCell>
-                          <span className={r.inStock ? "text-success" : "text-muted-foreground"}>
-                            {r.inStock ? "En stock" : "Sin stock"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {r.productUrl ? (
-                            <Button size="sm" className="bg-magic-gradient hover:shadow-glow" asChild>
-                              <a href={r.productUrl} target="_blank" rel="noopener noreferrer">
-                                <ShoppingCart className="h-4 w-4 mr-1" />
-                                Ver
-                              </a>
-                            </Button>
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </section>
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-border/50 hover:bg-muted/50"
+            asChild
+          >
+            <a href={result.storeUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
