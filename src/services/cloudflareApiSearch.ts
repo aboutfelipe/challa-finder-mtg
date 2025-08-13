@@ -3,6 +3,24 @@ import { CardResult } from "@/components/SearchResults";
 const WORKER_BASE_URL = 'https://challa-finder-mtg.aboutfelipe.workers.dev';
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
 
+// Helper function to parse and normalize price values
+const parsePrice = (price: any): number | null => {
+  if (!price || price === 'N/A' || price === '') return null;
+  
+  const cleanPrice = String(price).replace(/[^\d.,]/g, '').replace(',', '.');
+  const numPrice = parseFloat(cleanPrice);
+  
+  return isNaN(numPrice) ? null : numPrice;
+};
+
+// Helper function to format price as string
+const formatPrice = (price: any): string => {
+  const numPrice = parsePrice(price);
+  if (numPrice === null) return 'N/A';
+  
+  return `$${numPrice.toLocaleString('es-CL')} CLP`;
+};
+
 interface WorkerResponse {
   success: boolean;
   data?: any;
@@ -49,7 +67,7 @@ export const searchPaytowin = async (cardName: string): Promise<CardResult[]> =>
       store: "Pay2Win",
       storeUrl: "https://www.paytowin.cl",
       cardName: item.title || cardName,
-      price: item["price_max"] || 'N/A',
+      price: formatPrice(item["price_max"]),
       inStock: item.available === true,
       productUrl: `https://paytowin.cl/products/${item.handle}`,
       imageUrl: item.image,
@@ -74,7 +92,7 @@ export const searchLacomarca = async (cardName: string): Promise<CardResult[]> =
       store: "La Comarca",
       storeUrl: "https://www.tiendalacomarca.cl",
       cardName: item.title || cardName,
-      price: item["price_max"] || 'N/A',
+      price: formatPrice(item["price_max"]),
       inStock: item.available === true,
       productUrl: `https://tiendalacomarca.cl/products/${item.handle}`,
       imageUrl: item.image,
@@ -99,7 +117,7 @@ export const searchPiedrabruja = async (cardName: string): Promise<CardResult[]>
       store: "Piedra Bruja",
       storeUrl: "https://www.piedrabruja.cl",
       cardName: item.title || cardName,
-      price: item["price_max"] || 'N/A',
+      price: formatPrice(item["price_max"]),
       inStock: item.available === true,
       productUrl: `https://piedrabruja.cl/products/${item.handle}`,
       imageUrl: item.image,
@@ -128,7 +146,7 @@ export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> =>
       store: "TCGMatch",
       storeUrl: "https://tcgmatch.cl",
       cardName: item.name || cardName,
-      price: item.price || 'N/A',
+      price: formatPrice(item.price),
       inStock: (item.quantity || 0) > 0,
       productUrl: `https://tcgmatch.cl/product/${item._id}`, // Construir URL basada en el ID
       imageUrl: item.card?.data?.image_uris?.normal || item.card?.data?.image_uris?.small,
@@ -153,7 +171,7 @@ export const searchCatlotus = async (cardName: string): Promise<CardResult[]> =>
       store: "Catlotus",
       storeUrl: "https://catlotus.cl",
       cardName: item.name || cardName,
-      price: item.price || 'N/A',
+      price: formatPrice(item.price),
       inStock: item.stock_status === 'instock',
       productUrl: item.permalink || '#',
       imageUrl: item.images?.[0]?.src,
@@ -178,7 +196,7 @@ export const searchLacripta = async (cardName: string): Promise<CardResult[]> =>
       store: "La Cripta",
       storeUrl: "https://lacriptastore.com",
       cardName: item.name || cardName,
-      price: item.price || 'N/A',
+      price: formatPrice(item.price),
       inStock: item.stock_status === 'instock',
       productUrl: item.permalink || '#',
       imageUrl: item.images?.[0]?.src,
@@ -252,13 +270,17 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
         return b.inStock ? 1 : -1;
       }
       
-      if (a.price && b.price) {
-        const priceA = parseFloat(a.price.replace(/[^\d.,]/g, '').replace(',', '.'));
-        const priceB = parseFloat(b.price.replace(/[^\d.,]/g, '').replace(',', '.'));
-        if (!isNaN(priceA) && !isNaN(priceB)) {
-          return priceA - priceB;
-        }
+      // Use parsePrice helper to extract numeric values for comparison
+      const priceA = parsePrice(a.price);
+      const priceB = parsePrice(b.price);
+      
+      if (priceA !== null && priceB !== null) {
+        return priceA - priceB;
       }
+      
+      // If one price is null, put it at the end
+      if (priceA === null && priceB !== null) return 1;
+      if (priceA !== null && priceB === null) return -1;
       
       return 0;
     });
