@@ -194,7 +194,11 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                       )}
                     </div>
                     <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
-                      <div className="text-sm font-semibold text-gray-900 truncate">{bestOffer.cardName}</div>
+                      <div className="max-w-full overflow-x-auto sm:overflow-visible [-webkit-overflow-scrolling:touch]">
+                        <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
+                          {bestOffer.cardName}
+                        </div>
+                      </div>
                       <div className="text-xs text-gray-600 flex items-center gap-2">
                         {bestOffer.condition && (
                           <div className="bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium text-gray-700">
@@ -245,7 +249,11 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                             )}
                           </div>
                           <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
-                            <div className="text-sm font-semibold text-gray-900 truncate">{item.cardName}</div>
+                            <div className="max-w-full overflow-x-auto sm:overflow-visible [-webkit-overflow-scrolling:touch]">
+                              <div className="inline-block whitespace-nowrap sm:whitespace-normal text-sm font-semibold text-gray-900 sm:truncate">
+                                {item.cardName}
+                              </div>
+                            </div>
                             <div className="text-xs text-gray-600 flex items-center gap-2">
                               {item.condition && (
                                 <div className="bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium text-gray-700">

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
 import { searchAllStores, getStoreInfo } from "@/services/cloudflareApiSearch";
-import { useToast } from "@/hooks/use-toast";
+ 
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<CardResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
-  const { toast } = useToast();
+  
 
   const handleSearch = async (cardName: string) => {
     setIsLoading(true);
@@ -16,26 +16,10 @@ const Index = () => {
     setSearchResults([]);
 
     try {
-      toast({
-        title: "🚀 Iniciando búsqueda",
-        description: `Buscando "${cardName}" en todas las tiendas disponibles`
-      });
-
       const results = await searchAllStores(cardName);
       setSearchResults(results);
-
-      const inStockCount = results.filter(r => r.inStock).length;
-      toast({
-        title: "✅ Búsqueda completada",
-        description: `${inStockCount} tiendas con stock`
-      });
     } catch (error) {
       console.error("Search error:", error);
-      toast({
-        title: "❌ Error en la búsqueda",
-        description: error instanceof Error ? error.message : "Error desconocido en la búsqueda.",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }

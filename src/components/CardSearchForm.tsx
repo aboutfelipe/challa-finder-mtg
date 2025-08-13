@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+ 
 
 interface CardSearchFormProps {
   onSearch: (cardName: string) => void;
@@ -9,18 +9,10 @@ interface CardSearchFormProps {
 
 export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => {
   const [cardName, setCardName] = useState("");
-  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardName.trim()) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa el nombre de una carta",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!cardName.trim()) return;
     onSearch(cardName.trim());
   };
 
