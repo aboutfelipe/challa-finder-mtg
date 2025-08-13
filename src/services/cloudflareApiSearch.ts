@@ -115,21 +115,25 @@ export const searchPiedrabruja = async (cardName: string): Promise<CardResult[]>
 // TCGMatch search via Cloudflare Worker
 export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> => {
   try {
-    const data = await makeWorkerRequest('/tcgmatch', cardName);
+    const response = await makeWorkerRequest('/tcgmatch', cardName);
     
-    // TCGMatch now returns WooCommerce API format (array of products)
-    const products = Array.isArray(data) ? data : [];
+    // TCGMatch returns { success: boolean, data: { items: [...] } }
+    if (!response.success || !response.data?.items) {
+      return [];
+    }
+    
+    const products = response.data.items;
     
     return products.map((item: any) => ({
       store: "TCGMatch",
       storeUrl: "https://tcgmatch.cl",
       cardName: item.name || cardName,
       price: item.price || 'N/A',
-      inStock: item.stock_status === 'instock',
-      productUrl: item.permalink || '#',
-      imageUrl: item.images?.[0]?.src,
-      condition: 'N/A',
-      set: 'N/A',
+      inStock: (item.quantity || 0) > 0,
+      productUrl: `https://tcgmatch.cl/product/${item._id}`, // Construir URL basada en el ID
+      imageUrl: item.card?.data?.image_uris?.normal || item.card?.data?.image_uris?.small,
+      condition: item.status || 'N/A',
+      set: item.card?.data?.set_name || 'N/A',
     }));
   } catch (error) {
     console.error('TCGMatch search failed:', error);
