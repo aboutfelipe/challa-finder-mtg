@@ -97,6 +97,7 @@ const Index = () => {
                     className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-lg p-4 text-center hover:bg-card/70 transition-all duration-300"
                   >
                     <h3 className="font-semibold text-foreground">{store.name}</h3>
+                    <p className="text-xs text-muted-foreground">{store.status}</p>
                     <a 
                       href={store.url} 
                       target="_blank" 
