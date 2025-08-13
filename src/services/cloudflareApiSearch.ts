@@ -49,7 +49,7 @@ export const searchPaytowin = async (cardName: string): Promise<CardResult[]> =>
       store: "Pay2Win",
       storeUrl: "https://www.paytowin.cl",
       cardName: item.title || cardName,
-      price: item.price || 'N/A',
+      price: item["price_max"] || 'N/A',
       inStock: item.available === true,
       productUrl: `https://paytowin.cl/products/${item.handle}`,
       imageUrl: item.image,
@@ -99,7 +99,7 @@ export const searchPiedrabruja = async (cardName: string): Promise<CardResult[]>
       store: "Piedra Bruja",
       storeUrl: "https://www.piedrabruja.cl",
       cardName: item.title || cardName,
-      price: item.price || 'N/A',
+      price: item["price_max"] || 'N/A',
       inStock: item.available === true,
       productUrl: `https://piedrabruja.cl/products/${item.handle}`,
       imageUrl: item.image,
@@ -237,7 +237,7 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
       if (result.status === 'fulfilled') {
         allCards.push(...result.value);
       } else {
-        const storeNames = ['PayToWin', 'TCGMatch', 'Catlotus', 'La Cripta', 'Magic Sur'];
+        const storeNames = ['PayToWin', 'TCGMatch', 'Catlotus', 'La Cripta', 'Magic Sur', 'Piedra Bruja', 'La Comarca'];
         console.error(`${storeNames[index]} search failed:`, result.reason);
       }
     });
