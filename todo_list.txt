@@ -1,0 +1,12 @@
+# To-Do List de tiendas a integrar
+
+http://tcgmatch.cl --> OK
+http://paytowin.cl --> OK
+http://catlotus.cl --> OK
+https://www.tiendalacomarca.cl --> OK
+https://piedrabruja.cl --> OK
+http://lacripta.cl --> EN PROCESO
+http://cartasmagicsur.cl --> EN PROCESO
+https://www.chronomagic.cl --> PENDIENTE / SIN API
+https://cardnexus.cl --> PENDIENTE / SIN API
+https://www.bloodmoongames.cl --> PENDIENTE / SIN API

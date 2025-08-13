@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker for MTG Card API Proxy
+ * Cloudflare Worker for MTG Card API Proxy - UPDATED VERSION
  * Handles CORS and acts as a proxy for various card store APIs
  */
 
@@ -33,12 +33,16 @@ export default {
         return await handleTcgmatch(request, corsHeaders);
       } else if (path.startsWith('/catlotus')) {
         return await handleCatlotus(request, corsHeaders);
+      } else if (path.startsWith('/lacomarca')) {
+        return await handleLacomarca(request, corsHeaders);
+      } else if (path.startsWith('/piedrabruja')) {
+        return await handlePiedrabruja(request, corsHeaders);
       }
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });
     } catch (error) {
       console.error('Worker error:', error);
-      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      return new Response(JSON.stringify({ error: 'Internal Server Error', details: error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -57,17 +61,117 @@ async function handlePaytowin(request, corsHeaders) {
     });
   }
 
-  const shopifyUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product&resources[limit]=10`;
+  const shopifyUrl = `https://paytowin.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
   
   const response = await fetch(shopifyUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'User-Agent': 'Mozilla/5.0',
       'Accept': 'application/json',
     }
   });
 
   if (!response.ok) {
     throw new Error(`PayToWin API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleTcgmatch(request, corsHeaders) {
+  const url = new URL(request.url);
+  const cardName = url.searchParams.get('q');
+  
+  if (!cardName) {
+    return new Response(JSON.stringify({ error: 'Missing card name' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const tcgmatchUrl = `https://api.tcgmatch.cl/products/search?palabra=${encodeURIComponent(cardName)}&tcg=magic`;
+  
+  const response = await fetch(tcgmatchUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`TCGMatch API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleCatlotus(request, corsHeaders) {
+  const url = new URL(request.url);
+  const cardName = url.searchParams.get('q');
+  
+  if (!cardName) {
+    return new Response(JSON.stringify({ error: 'Missing card name' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const catlotusUrl = 'https://catlotus.cl/api/search/card';
+  
+  const response = await fetch(catlotusUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      search: cardName,
+      set: "",
+      foil: "",
+      page: 1
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Catlotus API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleLacripta(request, corsHeaders) {
+  const url = new URL(request.url);
+  const cardName = url.searchParams.get('q');
+  
+  if (!cardName) {
+    return new Response(JSON.stringify({ error: 'Missing card name' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const lacriptaUrl = `https://lacriptastore.com/wp-json/wc/v3/products?search=${encodeURIComponent(cardName)}`;
+  
+  const response = await fetch(lacriptaUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`La Cripta API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -97,22 +201,15 @@ async function handleMagicsur(request, corsHeaders) {
     method: 'POST',
     body: formData,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0',
       'Referer': 'https://www.cartasmagicsur.cl/',
       'Origin': 'https://www.cartasmagicsur.cl',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-      'Accept-Language': 'es-CL,es;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
       'X-Requested-With': 'XMLHttpRequest',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
     },
     redirect: 'follow'
   });
 
-  // Check if we were redirected to captcha
-  if (response.url.includes('sgcaptcha') || response.url.includes('captcha')) {
-    console.log('Magic Sur redirected to captcha:', response.url);
+  if (response.url.includes('captcha')) {
     return new Response(JSON.stringify({ 
       error: 'Magic Sur blocked request - captcha detected',
       redirectUrl: response.url 
@@ -123,22 +220,20 @@ async function handleMagicsur(request, corsHeaders) {
   }
 
   if (!response.ok) {
-    console.log('Magic Sur API error:', response.status, response.statusText);
     throw new Error(`Magic Sur API error: ${response.status}`);
   }
 
   const data = await response.text();
-  console.log('Magic Sur response length:', data.length);
   
   return new Response(data, {
     headers: { ...corsHeaders, 'Content-Type': 'text/html' }
   });
 }
 
-async function handleLacripta(request, corsHeaders) {
+async function handleLacomarca(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -146,30 +241,30 @@ async function handleLacripta(request, corsHeaders) {
     });
   }
 
-  const lacriptaUrl = `https://lacriptastore.com/wp-json/wc/v3/products?search=${encodeURIComponent(cardName)}&per_page=20`;
-  
-  const response = await fetch(lacriptaUrl, {
+  const shopifyUrl = `https://www.tiendalacomarca.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
+
+  const response = await fetch(shopifyUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'User-Agent': 'Mozilla/5.0',
       'Accept': 'application/json',
     }
   });
 
   if (!response.ok) {
-    throw new Error(`La Cripta API error: ${response.status}`);
+    throw new Error(`La Comarca API error: ${response.status}`);
   }
 
   const data = await response.json();
-  
+
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
-async function handleTcgmatch(request, corsHeaders) {
+async function handlePiedrabruja(request, corsHeaders) {
   const url = new URL(request.url);
   const cardName = url.searchParams.get('q');
-  
+
   if (!cardName) {
     return new Response(JSON.stringify({ error: 'Missing card name' }), {
       status: 400,
@@ -177,58 +272,21 @@ async function handleTcgmatch(request, corsHeaders) {
     });
   }
 
-  const tcgmatchUrl = `https://tcgmatch.com/api/products?search=${encodeURIComponent(cardName)}&limit=20`;
-  
-  const response = await fetch(tcgmatchUrl, {
+  const shopifyUrl = `https://piedrabruja.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
+
+  const response = await fetch(shopifyUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'User-Agent': 'Mozilla/5.0',
       'Accept': 'application/json',
     }
   });
 
   if (!response.ok) {
-    throw new Error(`TCGMatch API error: ${response.status}`);
+    throw new Error(`Piedra Bruja API error: ${response.status}`);
   }
 
   const data = await response.json();
-  
-  return new Response(JSON.stringify(data), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
 
-async function handleCatlotus(request, corsHeaders) {
-  const url = new URL(request.url);
-  const cardName = url.searchParams.get('q');
-  
-  if (!cardName) {
-    return new Response(JSON.stringify({ error: 'Missing card name' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-
-  const catlotusUrl = 'https://catlotus.cl/api/products/search';
-  
-  const response = await fetch(catlotusUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      query: cardName,
-      limit: 20
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Catlotus API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
   return new Response(JSON.stringify(data), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });

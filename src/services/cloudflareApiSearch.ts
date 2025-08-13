@@ -62,6 +62,56 @@ export const searchPaytowin = async (cardName: string): Promise<CardResult[]> =>
   }
 };
 
+// La Comarca search via Cloudflare Worker
+export const searchLacomarca = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const data = await makeWorkerRequest('/lacomarca', cardName);
+    
+    // La Comarca returns Shopify format: { resources: { results: { products: [...] } } }
+    const products = data?.resources?.results?.products || [];
+    
+    return products.map((item: any) => ({
+      store: "La Comarca",
+      storeUrl: "https://www.lacomarca.cl",
+      cardName: item.title || cardName,
+      price: item.price || 'N/A',
+      inStock: item.available === true,
+      productUrl: `https://lacomarca.cl/products/${item.handle}`,
+      imageUrl: item.image,
+      condition: 'N/A',
+      set: 'N/A',
+    }));
+  } catch (error) {
+    console.error('La Comarca search failed:', error);
+    return [];
+  }
+};
+
+// Piedra Bruja search via Cloudflare Worker
+export const searchPiedrabruja = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const data = await makeWorkerRequest('/piedrabruja', cardName);
+    
+    // Piedra Bruja returns Shopify format: { resources: { results: { products: [...] } } }
+    const products = data?.resources?.results?.products || [];
+    
+    return products.map((item: any) => ({
+      store: "Piedra Bruja",
+      storeUrl: "https://www.piedrabruja.cl",
+      cardName: item.title || cardName,
+      price: item.price || 'N/A',
+      inStock: item.available === true,
+      productUrl: `https://piedrabruja.cl/products/${item.handle}`,
+      imageUrl: item.image,
+      condition: 'N/A',
+      set: 'N/A',
+    }));
+  } catch (error) {
+    console.error('Piedra Bruja search failed:', error);
+    return [];
+  }
+};
+
 // TCGMatch search via Cloudflare Worker
 export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> => {
   try {
