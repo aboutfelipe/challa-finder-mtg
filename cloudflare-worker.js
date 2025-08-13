@@ -1,7 +1,8 @@
 /**
  * Cloudflare Worker for MTG Card API Proxy - UPDATED VERSION WITH CUSTOM TYPE FILTERING
  * Handles CORS and acts as a proxy for various card store APIs
- */
+ * Agregar a script dentro de Cloudflare Worker UI
+*/
 
 export default {
   async fetch(request, env, ctx) {
