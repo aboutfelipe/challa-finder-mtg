@@ -236,6 +236,31 @@ export const searchMagicsur = async (cardName: string): Promise<CardResult[]> =>
   }
 };
 
+// AfkStore search via Cloudflare Worker
+export const searchAfkstore = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const data = await makeWorkerRequest('/afkstore', cardName);
+    
+    // AfkStore returns Shopify format: { resources: { results: { products: [...] } } }
+    const products = data?.resources?.results?.products || [];
+    
+    return products.map((item: any) => ({
+      store: "AfkStore",
+      storeUrl: "https://www.afkstore.cl",
+      cardName: item.title || cardName,
+      price: formatPrice(item["price_max"]),
+      inStock: item.available === true,
+      productUrl: `https://afkstore.cl/products/${item.handle}`,
+      imageUrl: item.image,
+      condition: 'N/A',
+      set: 'N/A',
+    }));
+  } catch (error) {
+    console.error('AfkStore search failed:', error);
+    return [];
+  }
+};
+
 // Main search function that calls all stores
 export const searchAllStores = async (cardName: string): Promise<CardResult[]> => {
   const startTime = Date.now();
@@ -249,6 +274,7 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
     searchMagicsur(cardName),
     searchPiedrabruja(cardName),
     searchLacomarca(cardName),
+    searchAfkstore(cardName),
   ];
 
   try {
@@ -302,8 +328,9 @@ export const getStoreInfo = () => {
     { name: "Pay2Win", url: "https://www.paytowin.cl" , status: "Disponible"},
     { name: "TCGMatch", url: "https://tcgmatch.cl" , status: "Disponible"},
     { name: "Tienda La Comarca", url: "https://www.tiendalacomarca.cl" , status: "Disponible"},
+    { name: "AfkStore", url: "https://afkstore.cl" , status: "Disponible"},
     { name: "La Cripta", url: "https://lacripta.cl" , status: "Próximamente"},
     { name: "Magic Sur", url: "https://cartasmagicsur.cl" , status: "Próximamente"},
     { name: "Piedra Bruja", url: "https://piedrabruja.cl" , status: "Próximamente"},
-  ];
+    ];
 };
