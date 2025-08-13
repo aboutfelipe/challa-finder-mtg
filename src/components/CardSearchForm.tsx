@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
  
 
@@ -9,12 +9,98 @@ interface CardSearchFormProps {
 
 export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => {
   const [cardName, setCardName] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState<number>(-1);
+  const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!cardName.trim()) return;
     onSearch(cardName.trim());
   };
+
+  // Fetch suggestions (debounced)
+  useEffect(() => {
+    if (isLoading) return; // don't fetch while searching
+    const q = cardName.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setOpen(false);
+      setHighlight(-1);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const res = await fetch(
+          `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`,
+          { signal: controller.signal }
+        );
+        if (!res.ok) throw new Error("Autocomplete error");
+        const data = (await res.json()) as { data?: string[] };
+        const items = data.data ?? [];
+        setSuggestions(items.slice(0, 10));
+        setOpen(items.length > 0);
+        setHighlight(-1);
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") return;
+        setSuggestions([]);
+        setOpen(false);
+        setHighlight(-1);
+      }
+    }, 200);
+
+    return () => clearTimeout(timeout);
+  }, [cardName, isLoading]);
+
+  // Keyboard navigation
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === "Enter") {
+      if (highlight >= 0 && highlight < suggestions.length) {
+        e.preventDefault();
+        const pick = suggestions[highlight];
+        setCardName(pick);
+        setOpen(false);
+        onSearch(pick);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setHighlight(-1);
+    }
+  };
+
+  const selectSuggestion = (name: string) => {
+    setCardName(name);
+    setOpen(false);
+    onSearch(name);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) {
+        setOpen(false);
+        setHighlight(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, []);
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -23,16 +109,42 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="relative">
+        <div className="relative" ref={containerRef}>
           <input
             type="text"
             placeholder="Ejemplo: Lightning Bolt, Jace..."
             value={cardName}
             onChange={(e) => setCardName(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setOpen(true)}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(() => { setOpen(false); setHighlight(-1); }, 120)}
+            ref={inputRef}
             className="w-full pl-12 pr-4 py-4 text-base bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-0 transition-all duration-200 shadow-sm"
             disabled={isLoading}
           />
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+
+          {/* Suggestions dropdown */}
+          {open && suggestions.length > 0 && (
+            <ul className="absolute z-20 mt-2 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-auto">
+              {suggestions.map((name, idx) => (
+                <li
+                  key={name}
+                  onMouseDown={(e) => {
+                    // prevent blur before click
+                    e.preventDefault();
+                    selectSuggestion(name);
+                  }}
+                  className={[
+                    "px-3 py-2 cursor-pointer text-sm",
+                    idx === highlight ? "bg-gray-100 text-gray-900" : "hover:bg-gray-50 text-gray-800",
+                  ].join(" ")}
+                >
+                  {name}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         
         <button
