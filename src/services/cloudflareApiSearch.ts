@@ -72,11 +72,11 @@ export const searchLacomarca = async (cardName: string): Promise<CardResult[]> =
     
     return products.map((item: any) => ({
       store: "La Comarca",
-      storeUrl: "https://www.lacomarca.cl",
+      storeUrl: "https://www.tiendalacomarca.cl",
       cardName: item.title || cardName,
       price: item.price || 'N/A',
       inStock: item.available === true,
-      productUrl: `https://lacomarca.cl/products/${item.handle}`,
+      productUrl: `https://tiendalacomarca.cl/products/${item.handle}`,
       imageUrl: item.image,
       condition: 'N/A',
       set: 'N/A',
