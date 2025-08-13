@@ -67,19 +67,19 @@ export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/tcgmatch', cardName);
     
-    // TCGMatch returns array of products directly
+    // TCGMatch now returns WooCommerce API format (array of products)
     const products = Array.isArray(data) ? data : [];
     
     return products.map((item: any) => ({
       store: "TCGMatch",
-      storeUrl: "https://tcgmatch.com",
+      storeUrl: "https://tcgmatch.cl",
       cardName: item.name || cardName,
       price: item.price || 'N/A',
-      inStock: item.in_stock === true,
-      productUrl: item.url || '#',
-      imageUrl: item.image,
-      condition: item.condition || 'N/A',
-      set: item.set || 'N/A',
+      inStock: item.stock_status === 'instock',
+      productUrl: item.permalink || '#',
+      imageUrl: item.images?.[0]?.src,
+      condition: 'N/A',
+      set: 'N/A',
     }));
   } catch (error) {
     console.error('TCGMatch search failed:', error);
@@ -92,19 +92,19 @@ export const searchCatlotus = async (cardName: string): Promise<CardResult[]> =>
   try {
     const data = await makeWorkerRequest('/catlotus', cardName);
     
-    // Catlotus returns array of products directly
+    // Catlotus now returns WooCommerce API format (array of products)
     const products = Array.isArray(data) ? data : [];
     
     return products.map((item: any) => ({
       store: "Catlotus",
       storeUrl: "https://catlotus.cl",
-      cardName: item.nombre || item.name || cardName,
-      price: item.precio || item.price || 'N/A',
-      inStock: (item.stock || 0) > 0,
-      productUrl: item.url || '#',
-      imageUrl: item.imagen || item.image,
-      condition: item.condicion || item.condition || 'N/A',
-      set: item.set || 'N/A',
+      cardName: item.name || cardName,
+      price: item.price || 'N/A',
+      inStock: item.stock_status === 'instock',
+      productUrl: item.permalink || '#',
+      imageUrl: item.images?.[0]?.src,
+      condition: 'N/A',
+      set: 'N/A',
     }));
   } catch (error) {
     console.error('Catlotus search failed:', error);
