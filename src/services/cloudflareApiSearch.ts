@@ -270,7 +270,7 @@ export const searchOasisgames = async (cardName: string): Promise<CardResult[]> 
     const products = data?.resources?.results?.products || [];
     
     return products.map((item: any) => ({
-      store: "Oasisgames",
+      store: "Oasis Games",
       storeUrl: "https://www.oasisgames.cl",
       cardName: item.title || cardName,
       price: formatPrice(item["price_max"]),
@@ -281,7 +281,7 @@ export const searchOasisgames = async (cardName: string): Promise<CardResult[]> 
       set: 'N/A',
     }));
   } catch (error) {
-    console.error('Oasisgames search failed:', error);
+    console.error('Oasis Games search failed:', error);
     return [];
   }
 };
@@ -311,7 +311,7 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
       if (result.status === 'fulfilled') {
         allCards.push(...result.value);
       } else {
-        const storeNames = ['PayToWin', 'TCGMatch', 'Catlotus', 'La Cripta', 'Magic Sur', 'Piedra Bruja', 'La Comarca'];
+        const storeNames = ['PayToWin', 'TCGMatch', 'Catlotus', 'La Cripta', 'Magic Sur', 'Piedra Bruja', 'La Comarca', 'AfkStore', 'Oasis Games'];
         console.error(`${storeNames[index]} search failed:`, result.reason);
       }
     });
