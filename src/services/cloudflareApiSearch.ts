@@ -74,7 +74,7 @@ export const searchLacomarca = async (cardName: string): Promise<CardResult[]> =
       store: "La Comarca",
       storeUrl: "https://www.tiendalacomarca.cl",
       cardName: item.title || cardName,
-      price: item.price || 'N/A',
+      price: item.["price_max"] || 'N/A',
       inStock: item.available === true,
       productUrl: `https://tiendalacomarca.cl/products/${item.handle}`,
       imageUrl: item.image,
