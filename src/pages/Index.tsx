@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
@@ -10,6 +10,25 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const isHero = !isLoading && searchResults.length === 0 && !lastSearchTerm;
+  
+  // Build a map of store name -> logo URL (favicon) once
+  const storeLogos = useMemo(() => {
+    try {
+      const entries = getStoreInfo().map((s) => {
+        try {
+          const u = new URL(s.url);
+          const domain = u.hostname;
+          const logo = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+          return [s.name, logo] as const;
+        } catch {
+          return [s.name, ""] as const;
+        }
+      });
+      return Object.fromEntries(entries);
+    } catch {
+      return {} as Record<string, string>;
+    }
+  }, []);
   
 
   const handleSearch = async (cardName: string) => {
@@ -64,7 +83,7 @@ const Index = () => {
           {/* Search Results */}
           {(searchResults.length > 0 || (!isLoading && lastSearchTerm)) && (
             <div className="mt-2 transition-all duration-500">
-              <SearchResults results={searchResults} searchTerm={lastSearchTerm} isLoading={isLoading} />
+              <SearchResults results={searchResults} searchTerm={lastSearchTerm} isLoading={isLoading} storeLogos={storeLogos} />
             </div>
           )}
 
@@ -84,7 +103,12 @@ const Index = () => {
                     key={store.name} 
                     className="bg-white border border-gray-200 rounded-xl p-3 text-center hover:shadow-sm transition-all duration-200"
                   >
-                    <h3 className="font-semibold text-gray-900 text-sm">{store.name}</h3>
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      {storeLogos[store.name] && (
+                        <img src={storeLogos[store.name]} alt="" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" loading="lazy" />
+                      )}
+                      <h3 className="font-semibold text-gray-900 text-sm">{store.name}</h3>
+                    </div>
                     <p className="text-xs text-gray-500 mb-1">{store.status}</p>
                     <a 
                       href={store.url} 

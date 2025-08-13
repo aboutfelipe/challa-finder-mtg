@@ -19,7 +19,7 @@ interface SearchResultsProps {
   isLoading?: boolean;
 }
 
-export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsProps) => {
+export const SearchResults = ({ results, searchTerm, isLoading = false, storeLogos }: SearchResultsProps & { storeLogos?: Record<string, string> }) => {
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
 
   if (results.length === 0) {
@@ -164,11 +164,13 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
               <div key={storeName} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 {/* Store Header */}
                 <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                  <div className="w-12 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                    <div className="text-[10px] text-gray-500 font-medium tracking-wide">LOGO</div>
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-base font-semibold text-gray-900 mb-1 line-clamp-1">{storeName}</div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {storeLogos?.[storeName] && (
+                        <img src={storeLogos[storeName]} alt="" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" loading="lazy" />
+                      )}
+                      <div className="text-base font-semibold text-gray-900 line-clamp-1">{storeName}</div>
+                    </div>
                     <div className="text-xs text-gray-600 flex items-center gap-2">
                       <span className="font-medium">{bestOffer.set || 'Set desconocido'}</span>
                       <div className="bg-gray-100 border border-gray-200 rounded-xl px-2 py-0.5 text-xs font-medium text-gray-700">
