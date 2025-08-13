@@ -1,6 +1,6 @@
 import { CardResult } from "@/components/SearchResults";
 
-const WORKER_BASE_URL = 'https://mtg-api-proxy.your-subdomain.workers.dev';
+const WORKER_BASE_URL = 'https://challa-finder-mtg.aboutfelipe.workers.dev';
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout
 
 interface WorkerResponse {
