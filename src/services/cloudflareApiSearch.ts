@@ -148,7 +148,7 @@ export const searchTcgmatch = async (cardName: string): Promise<CardResult[]> =>
       cardName: item.name || cardName,
       price: formatPrice(item.price),
       inStock: (item.quantity || 0) > 0,
-      productUrl: `https://tcgmatch.cl/product/${item._id}`, // Construir URL basada en el ID
+      productUrl: `https://tcgmatch.cl/producto/${item._id}`, // Construir URL basada en el ID
       imageUrl: item.card?.data?.image_uris?.normal || item.card?.data?.image_uris?.small,
       condition: item.status || 'N/A',
       set: item.card?.data?.set_name || 'N/A',
