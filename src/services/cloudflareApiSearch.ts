@@ -261,6 +261,31 @@ export const searchAfkstore = async (cardName: string): Promise<CardResult[]> =>
   }
 };
 
+// Oasisgames search via Cloudflare Worker
+export const searchOasisgames = async (cardName: string): Promise<CardResult[]> => {
+  try {
+    const data = await makeWorkerRequest('/oasisgames', cardName);
+    
+    // Oasisgames returns WooCommerce API format (array of products)
+    const products = data?.resources?.results?.products || [];
+    
+    return products.map((item: any) => ({
+      store: "Oasisgames",
+      storeUrl: "https://www.oasisgames.cl",
+      cardName: item.title || cardName,
+      price: formatPrice(item["price_max"]),
+      inStock: item.available === true,
+      productUrl: `https://oasisgames.cl/products/${item.handle}`,
+      imageUrl: item.image,
+      condition: 'N/A',
+      set: 'N/A',
+    }));
+  } catch (error) {
+    console.error('Oasisgames search failed:', error);
+    return [];
+  }
+};
+
 // Main search function that calls all stores
 export const searchAllStores = async (cardName: string): Promise<CardResult[]> => {
   const startTime = Date.now();
@@ -275,6 +300,7 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
     searchPiedrabruja(cardName),
     searchLacomarca(cardName),
     searchAfkstore(cardName),
+    searchOasisgames(cardName),
   ];
 
   try {
@@ -329,6 +355,7 @@ export const getStoreInfo = () => {
     { name: "TCGMatch", url: "https://tcgmatch.cl" , status: "Disponible"},
     { name: "Tienda La Comarca", url: "https://www.tiendalacomarca.cl" , status: "Disponible"},
     { name: "AfkStore", url: "https://afkstore.cl" , status: "Disponible"},
+    { name: "Oasis Games", url: "https://www.oasisgames.cl" , status: "Disponible"},
     { name: "La Cripta", url: "https://lacripta.cl" , status: "Próximamente"},
     { name: "Magic Sur", url: "https://cartasmagicsur.cl" , status: "Próximamente"},
     { name: "Piedra Bruja", url: "https://piedrabruja.cl" , status: "Próximamente"},

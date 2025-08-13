@@ -39,6 +39,8 @@ export default {
         return await handlePiedrabruja(request, corsHeaders);
       } else if (path.startsWith('/afkstore')) {
         return await handleAfkstore(request, corsHeaders);
+      } else if (path.startsWith('/oasisgames')) {
+        return await handleOasisgames(request, corsHeaders);
       }
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -352,3 +354,41 @@ async function handleAfkstore(request, corsHeaders) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
+
+async function handleOasisgames(request, corsHeaders) {
+  const url = new URL(request.url);
+  const cardName = url.searchParams.get('q');
+
+  if (!cardName) {
+    return new Response(JSON.stringify({ error: 'Missing card name' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const shopifyUrl = `https://oasisgames.cl/search/suggest.json?q=${encodeURIComponent(cardName)}&resources[type]=product`;
+
+  const response = await fetch(shopifyUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Oasis Games API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Filtrar productos cuyo type sea "MTG Single"
+  if (data.resources?.results?.products) {
+    data.resources.results.products = data.resources.results.products.filter(p =>
+      p.type === "MTG Single"
+    );
+  }
+
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+} 
