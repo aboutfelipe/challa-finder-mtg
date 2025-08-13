@@ -162,16 +162,7 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                 {/* Store Header */}
                 <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
                   <div className="w-12 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                    {bestOffer.imageUrl ? (
-                      <img 
-                        src={bestOffer.imageUrl} 
-                        alt={`${bestOffer.cardName} en ${storeName}`}
-                        className="w-full h-full object-cover rounded"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="text-xs text-gray-500 text-center">MTG</div>
-                    )}
+                    <div className="text-[10px] text-gray-500 font-medium tracking-wide">LOGO</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-base font-semibold text-gray-900 mb-1 line-clamp-1">{storeName}</div>
@@ -190,6 +181,18 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                   <div className={`p-4 border-b border-gray-100 flex justify-between items-center transition-colors duration-200 ${
                     isBestOverall ? 'bg-gradient-to-r from-green-50 to-green-100 border-l-3 border-l-green-500' : 'hover:bg-gray-50'
                   }`}>
+                    <div className="w-12 h-16 mr-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      {bestOffer.imageUrl ? (
+                        <img
+                          src={bestOffer.imageUrl}
+                          alt={`${bestOffer.cardName}`}
+                          className="w-full h-full object-cover rounded"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="text-xs text-gray-500">MTG</div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{bestOffer.cardName}</div>
                       <div className="text-xs text-gray-600 flex items-center gap-2">
@@ -229,6 +232,18 @@ export const SearchResults = ({ results, searchTerm, isLoading }: SearchResultsP
                       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-1'}`}>
                         {items.slice(1).map((item, idx) => (
                         <div key={idx} className="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200">
+                          <div className="w-12 h-16 mr-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={`${item.cardName}`}
+                                className="w-full h-full object-cover rounded"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="text-xs text-gray-500">MTG</div>
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0 pr-3 flex flex-col gap-1">
                             <div className="text-sm font-semibold text-gray-900 truncate">{item.cardName}</div>
                             <div className="text-xs text-gray-600 flex items-center gap-2">
