@@ -1,10 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer';
-import { scrapeCatlotus } from './scrapers/catlotus.js';
-import { scrapePaytowin } from './scrapers/paytowin.js';
-import { scrapeLacripta } from './scrapers/lacripta.js';
-import { scrapeTcgmatch } from './scrapers/tcgmatch.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,23 +35,7 @@ function checkRateLimit(ip) {
   return true;
 }
 
-// Global browser instance
-let browser = null;
-
-async function getBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-features=VizDisplayCompositor'
-      ]
-    });
-  }
-  return browser;
-}
+// Puppeteer removed: no headless browser is used anymore.
 
 // PayToWin direct API endpoint (to bypass CORS)
 app.post('/api/paytowin-direct', async (req, res) => {
@@ -202,124 +181,9 @@ app.post('/api/magicsur-direct', async (req, res) => {
   }
 });
 
-// Generic scraper endpoint
-app.post('/api/scrape/:store', async (req, res) => {
-  const { store } = req.params;
-  const { cardName } = req.body;
-  const clientIp = req.ip || req.connection.remoteAddress;
+// Generic scraper endpoint removed (Puppeteer-based scraping no longer used)
 
-  // Rate limiting
-  if (!checkRateLimit(clientIp)) {
-    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
-  }
-
-  if (!cardName) {
-    return res.status(400).json({ error: 'Card name is required' });
-  }
-
-  // Check cache
-  const cacheKey = `${store}-${cardName.toLowerCase()}`;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return res.json(cached.data);
-  }
-
-  try {
-    const browserInstance = await getBrowser();
-    let results = [];
-
-    switch (store) {
-      case 'catlotus':
-        results = await scrapeCatlotus(browserInstance, cardName);
-        break;
-      case 'paytowin':
-        results = await scrapePaytowin(browserInstance, cardName);
-        break;
-      case 'lacripta':
-        results = await scrapeLacripta(browserInstance, cardName);
-        break;
-      case 'tcgmatch':
-        results = await scrapeTcgmatch(browserInstance, cardName);
-        break;
-      default:
-        return res.status(404).json({ error: 'Store not found' });
-    }
-
-    // Cache results
-    cache.set(cacheKey, {
-      data: results,
-      timestamp: Date.now()
-    });
-
-    res.json(results);
-  } catch (error) {
-    console.error(`Error scraping ${store}:`, error);
-    res.status(500).json({ error: `Error scraping ${store}: ${error.message}` });
-  }
-});
-
-// Search all stores endpoint
-app.post('/api/search', async (req, res) => {
-  const { cardName } = req.body;
-  const clientIp = req.ip || req.connection.remoteAddress;
-
-  // Rate limiting
-  if (!checkRateLimit(clientIp)) {
-    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
-  }
-
-  if (!cardName) {
-    return res.status(400).json({ error: 'Card name is required' });
-  }
-
-  try {
-    const browserInstance = await getBrowser();
-    const stores = ['catlotus', 'paytowin', 'lacripta', 'tcgmatch'];
-    
-    const searchPromises = stores.map(async (store) => {
-      try {
-        switch (store) {
-          case 'catlotus':
-            return await scrapeCatlotus(browserInstance, cardName);
-          case 'paytowin':
-            return await scrapePaytowin(browserInstance, cardName);
-          case 'lacripta':
-            return await scrapeLacripta(browserInstance, cardName);
-          case 'tcgmatch':
-            return await scrapeTcgmatch(browserInstance, cardName);
-          default:
-            return [];
-        }
-      } catch (error) {
-        console.error(`Error scraping ${store}:`, error);
-        return [];
-      }
-    });
-
-    const results = await Promise.all(searchPromises);
-    const allResults = results.flat();
-
-    // Sort by availability and price
-    allResults.sort((a, b) => {
-      if (a.inStock !== b.inStock) {
-        return b.inStock ? 1 : -1;
-      }
-      
-      if (a.price && b.price) {
-        const priceA = parseInt(a.price.replace(/[^\d]/g, ''));
-        const priceB = parseInt(b.price.replace(/[^\d]/g, ''));
-        return priceA - priceB;
-      }
-      
-      return 0;
-    });
-
-    res.json(allResults);
-  } catch (error) {
-    console.error('Error searching all stores:', error);
-    res.status(500).json({ error: 'Error searching stores' });
-  }
-});
+// Search-all endpoint removed (Puppeteer-based scraping no longer used)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -329,12 +193,9 @@ app.get('/api/health', (req, res) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down server...');
-  if (browser) {
-    await browser.close();
-  }
   process.exit(0);
 });
 
 app.listen(PORT, () => {
-  console.log(`Scraper server running on port ${PORT}`);
+  console.log(`API server running on port ${PORT}`);
 });
