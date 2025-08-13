@@ -225,6 +225,8 @@ export const searchAllStores = async (cardName: string): Promise<CardResult[]> =
     searchCatlotus(cardName),
     searchLacripta(cardName),
     searchMagicsur(cardName),
+    searchPiedrabruja(cardName),
+    searchLacomarca(cardName),
   ];
 
   try {
@@ -274,6 +276,8 @@ export const getStoreInfo = () => {
     { name: "Pay2Win", url: "https://www.paytowin.cl" },
     { name: "La Cripta", url: "https://lacripta.cl" },
     { name: "TCGMatch", url: "https://tcgmatch.cl" },
-    { name: "Magic Sur", url: "https://cartasmagicsur.cl" }
+    { name: "Magic Sur", url: "https://cartasmagicsur.cl" },
+    { name: "Piedra Bruja", url: "https://piedrabruja.cl" },
+    { name: "La Comarca", url: "https://www.lacomarca.cl" },
   ];
 };
