@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, ShoppingCart, AlertCircle, ChevronDown } from "lucide-react";
+import { ExternalLink, ShoppingCart, AlertCircle, ChevronDown, Star } from "lucide-react";
 
 export interface CardResult {
   store: string;
@@ -19,7 +19,7 @@ interface SearchResultsProps {
   isLoading?: boolean;
 }
 
-export const SearchResults = ({ results, searchTerm, isLoading = false, storeLogos }: SearchResultsProps & { storeLogos?: Record<string, string> }) => {
+export const SearchResults = ({ results, searchTerm, isLoading = false, storeLogos, isFavorite, onToggleFavorite }: SearchResultsProps & { storeLogos?: Record<string, string>; isFavorite?: (c: CardResult) => boolean; onToggleFavorite?: (c: CardResult) => void; }) => {
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
 
   if (results.length === 0) {
@@ -227,14 +227,23 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
                       <div className={`text-lg font-bold whitespace-nowrap ${isBestOverall ? 'text-green-700' : 'text-gray-900'}`}>
                         {bestOffer.price || 'Sin precio'}
                       </div>
-                      {bestOffer.productUrl && (
-                        <button 
-                          className="bg-gray-900 border-none rounded text-white text-xs font-semibold px-3 py-1.5 cursor-pointer transition-all duration-200 tracking-wide hover:bg-gray-700 hover:-translate-y-0.5 active:translate-y-0"
-                          onClick={() => window.open(bestOffer.productUrl, '_blank')}
+                      <div className="flex items-center gap-2">
+                        <button
+                          aria-label="Toggle favorito"
+                          className={`p-1 rounded-md border border-transparent transition-colors ${isFavorite?.(bestOffer) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-gray-600'}`}
+                          onClick={() => onToggleFavorite?.(bestOffer)}
                         >
-                          VER OFERTA
+                          <Star className={`${isFavorite?.(bestOffer) ? 'fill-yellow-400' : ''} w-4 h-4`} />
                         </button>
-                      )}
+                        {bestOffer.productUrl && (
+                          <button 
+                            className="bg-gray-900 border-none rounded text-white text-xs font-semibold px-3 py-1.5 cursor-pointer transition-all duration-200 tracking-wide hover:bg-gray-700 hover:-translate-y-0.5 active:translate-y-0"
+                            onClick={() => window.open(bestOffer.productUrl, '_blank')}
+                          >
+                            VER OFERTA
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -280,14 +289,23 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
                             <div className="text-lg font-bold text-gray-900 whitespace-nowrap">
                               {item.price || 'Sin precio'}
                             </div>
-                            {item.productUrl && (
-                              <button 
-                                className="bg-gray-900 border-none rounded text-white text-xs font-semibold px-3 py-1.5 cursor-pointer transition-all duration-200 tracking-wide hover:bg-gray-700 hover:-translate-y-0.5 active:translate-y-0"
-                                onClick={() => window.open(item.productUrl, '_blank')}
+                            <div className="flex items-center gap-2">
+                              <button
+                                aria-label="Toggle favorito"
+                                className={`p-1 rounded-md border border-transparent transition-colors ${isFavorite?.(item) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                onClick={() => onToggleFavorite?.(item)}
                               >
-                                VER OFERTA
+                                <Star className={`${isFavorite?.(item) ? 'fill-yellow-400' : ''} w-4 h-4`} />
                               </button>
-                            )}
+                              {item.productUrl && (
+                                <button 
+                                  className="bg-gray-900 border-none rounded text-white text-xs font-semibold px-3 py-1.5 cursor-pointer transition-all duration-200 tracking-wide hover:bg-gray-700 hover:-translate-y-0.5 active:translate-y-0"
+                                  onClick={() => window.open(item.productUrl, '_blank')}
+                                >
+                                  VER OFERTA
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                         ))}

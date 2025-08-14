@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Star } from "lucide-react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
 import { searchAllStores, getStoreInfo } from "@/services/cloudflareApiSearch";
+import { useFavorites } from "@/hooks/use-favorites";
+import { FavoritesPanel } from "@/components/FavoritesPanel";
  
 
 const Index = () => {
@@ -10,6 +12,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const isHero = !isLoading && searchResults.length === 0 && !lastSearchTerm;
+  const { groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite } = useFavorites();
+  const [showFavorites, setShowFavorites] = useState(false);
   
   // Build a map of store name -> logo URL (favicon) once
   const storeLogos = useMemo(() => {
@@ -60,14 +64,14 @@ const Index = () => {
         }
       `}</style>
       {/* Modern Fintech Layout */}
-      <div className="min-h-screen flex flex-col items-center justify-start px-4">
+      <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 md:pt-10">
         {/* Content Container */}
         <div className="w-full max-w-[38rem] mx-auto space-y-3">
           {/* Hero: Title + Search Form */}
           <div
             className={[
               "transition-all duration-500 relative",
-              isHero ? "min-h-[60vh] flex items-center justify-center" : "pt-3"
+              isHero ? "min-h-[60vh] flex items-center justify-center" : "pt-4 md:pt-6"
             ].join(" ")}
           >
             <div className="w-full">
@@ -83,7 +87,14 @@ const Index = () => {
           {/* Search Results */}
           {(searchResults.length > 0 || (!isLoading && lastSearchTerm)) && (
             <div className="mt-2 transition-all duration-500">
-              <SearchResults results={searchResults} searchTerm={lastSearchTerm} isLoading={isLoading} storeLogos={storeLogos} />
+              <SearchResults 
+                results={searchResults} 
+                searchTerm={lastSearchTerm} 
+                isLoading={isLoading} 
+                storeLogos={storeLogos}
+                isFavorite={isFavorite}
+                onToggleFavorite={toggleFavorite}
+              />
             </div>
           )}
 
@@ -125,6 +136,22 @@ const Index = () => {
           )}
         </div>
       </div>
+      {/* Floating Favorites Toggle Button (hidden when open) */}
+      {!showFavorites && (
+        <button
+          aria-label="Mostrar favoritos"
+          className={`fixed top-5 right-2 z-40 flex items-center gap-2 justify-center h-10 w-10 md:w-auto rounded-full md:rounded-xl border transition-all shadow bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-50 md:px-3`}
+          onClick={() => setShowFavorites(true)}
+        >
+          <Star className={`text-gray-500 w-5 h-5`} />
+          <span className="hidden md:inline text-sm font-medium">Favoritos</span>
+        </button>
+      )}
+
+      {/* Favorites Panel fixed top-right (conditional) */}
+      {showFavorites && (
+        <FavoritesPanel groupedByStore={favoritesByStore} onRemove={removeFavorite} storeLogos={storeLogos} onClose={() => setShowFavorites(false)} />
+      )}
     </div>
   );
 };

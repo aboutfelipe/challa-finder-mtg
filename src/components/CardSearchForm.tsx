@@ -12,6 +12,8 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
+  const [focused, setFocused] = useState(false);
+  const [suppress, setSuppress] = useState(false); // keep dropdown closed after search until typing
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -19,6 +21,13 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!cardName.trim()) return;
+    // Hide suggestions and submit search
+    setOpen(false);
+    setSuggestions([]);
+    setHighlight(-1);
+    inputRef.current?.blur();
+    setFocused(false);
+    setSuppress(true);
     onSearch(cardName.trim());
   };
 
@@ -45,8 +54,9 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
         if (!res.ok) throw new Error("Autocomplete error");
         const data = (await res.json()) as { data?: string[] };
         const items = data.data ?? [];
-        setSuggestions(items.slice(0, 10));
-        setOpen(items.length > 0);
+        const top = items.slice(0, 10);
+        setSuggestions(top);
+        setOpen(top.length > 0 && focused && !suppress);
         setHighlight(-1);
       } catch (err) {
         if ((err as any)?.name === "AbortError") return;
@@ -74,6 +84,11 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
         const pick = suggestions[highlight];
         setCardName(pick);
         setOpen(false);
+        setSuggestions([]);
+        setHighlight(-1);
+        inputRef.current?.blur();
+        setFocused(false);
+        setSuppress(true);
         onSearch(pick);
       }
     } else if (e.key === "Escape") {
@@ -85,6 +100,11 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
   const selectSuggestion = (name: string) => {
     setCardName(name);
     setOpen(false);
+    setSuggestions([]);
+    setHighlight(-1);
+    inputRef.current?.blur();
+    setFocused(false);
+    setSuppress(true);
     onSearch(name);
   };
 
@@ -114,10 +134,10 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
             type="text"
             placeholder="Ejemplo: Lightning Bolt, Jace..."
             value={cardName}
-            onChange={(e) => setCardName(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setOpen(true)}
+            onChange={(e) => { setCardName(e.target.value); setSuppress(false); }}
+            onFocus={() => { setFocused(true); if (suggestions.length > 0 && !suppress) setOpen(true); }}
             onKeyDown={onKeyDown}
-            onBlur={() => setTimeout(() => { setOpen(false); setHighlight(-1); }, 120)}
+            onBlur={() => setTimeout(() => { setOpen(false); setHighlight(-1); setFocused(false); }, 120)}
             ref={inputRef}
             className="w-full pl-12 pr-12 py-4 text-base bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-0 transition-all duration-200 shadow-sm"
             disabled={isLoading}
@@ -135,6 +155,7 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
                 setSuggestions([]);
                 setOpen(false);
                 setHighlight(-1);
+                setSuppress(false);
                 inputRef.current?.focus();
               }}
             >
