@@ -125,7 +125,23 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-6">
-        <div className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">MTG Challa Finder</div>
+        {/* Gradient animated title */}
+        <style>{`
+          @keyframes gradient-move-x {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+          }
+        `}</style>
+        <div
+          className="text-2xl font-bold mb-2 tracking-tight text-transparent bg-clip-text"
+          style={{
+            backgroundImage: 'linear-gradient(90deg, #3b82f6 0%, #a855f7 20%, #ec4899 50%, #a855f7 80%, #3b82f6 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'gradient-move-x 10s linear infinite',
+          }}
+        >
+          MTG Challa Finder
+        </div>
         <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">Buscamos la carta que necesitas en las mejores tiendas de Chile especializadas en Magic The Gathering</p>
       </div>
 
