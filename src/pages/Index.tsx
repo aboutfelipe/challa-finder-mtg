@@ -12,7 +12,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const isHero = !isLoading && searchResults.length === 0 && !lastSearchTerm;
-  const { groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite } = useFavorites();
+  const { favorites, groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite } = useFavorites();
+  const totalFavorites = favorites.length;
   const [showFavorites, setShowFavorites] = useState(false);
   
   // Build a map of store name -> logo URL (favicon) once
@@ -140,11 +141,19 @@ const Index = () => {
       {!showFavorites && (
         <button
           aria-label="Mostrar favoritos"
-          className={`hidden md:flex fixed top-5 right-2 z-40 items-center gap-2 justify-center h-10 w-10 md:w-auto rounded-full md:rounded-xl border transition-all shadow bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-50 md:px-3`}
+          className={`hidden md:flex fixed !top-5 !right-4 !left-auto !bottom-auto z-[100] items-center gap-2 justify-center h-10 w-10 md:w-auto rounded-full md:rounded-xl border transition-all shadow bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-50 md:px-3 relative`}
+          style={{ top: '1.25rem', right: '1rem', left: 'auto', bottom: 'auto', position: 'fixed' }}
           onClick={() => setShowFavorites(true)}
         >
           <Star className={`text-gray-500 w-5 h-5`} />
           <span className="hidden md:inline text-sm font-medium">Favoritos</span>
+          {totalFavorites > 0 && (
+            <span
+              className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[10px] leading-5 text-center font-semibold shadow ring-1 ring-white"
+            >
+              {totalFavorites}
+            </span>
+          )}
         </button>
       )}
 
@@ -155,7 +164,7 @@ const Index = () => {
 
       {/* Mobile Bottom Bar (always visible) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
-        <div className="px-6 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-center justify-around text-xs">
+        <div className="px-6 py-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-center justify-around text-xs">
           <button
             className={`flex flex-col items-center gap-1 px-3 py-1 active:scale-95 active:bg-gray-100 rounded-lg transition ${!showFavorites ? 'text-gray-900' : 'text-gray-500'}`}
             onClick={() => setShowFavorites(false)}
@@ -165,12 +174,19 @@ const Index = () => {
             <span className="font-medium">Buscar</span>
           </button>
           <button
-            className={`flex flex-col items-center gap-1 px-3 py-1 active:scale-95 active:bg-gray-100 rounded-lg transition ${showFavorites ? 'text-gray-900' : 'text-gray-500'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-1 active:scale-95 active:bg-gray-100 rounded-lg transition ${showFavorites ? 'text-gray-900' : 'text-gray-500'} relative`}
             onClick={() => setShowFavorites(true)}
             aria-label="Ir a favoritos"
           >
             <Star className={`w-5 h-5 ${showFavorites ? 'text-gray-900' : 'text-gray-500'}`} />
             <span className="font-medium">Favoritos</span>
+            {totalFavorites > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[10px] leading-5 text-center font-semibold shadow ring-1 ring-white"
+              >
+                {totalFavorites}
+              </span>
+            )}
           </button>
         </div>
       </nav>

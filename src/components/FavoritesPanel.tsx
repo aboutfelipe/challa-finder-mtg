@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import type { Favorite } from "@/hooks/use-favorites";
 
 export interface FavoritesPanelProps {
@@ -8,7 +8,7 @@ export interface FavoritesPanelProps {
   onClose?: () => void;
 }
 
-export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: FavoritesPanelProps) => {
+export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos, onClose }: FavoritesPanelProps) => {
   const totalItems = Object.values(groupedByStore).reduce((a, b) => a + b.length, 0);
 
   const parsePrice = (p?: string) => {
@@ -34,6 +34,18 @@ export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: Favorit
     <div className={containerClass}>
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 md:px-4 pt-6 pb-4 md:py-3 flex items-center md:justify-start justify-center">
         <div className="text-base md:text-sm font-semibold text-gray-900">Favoritos</div>
+        {/* Desktop-only close button */}
+        <div className="ml-auto hidden md:flex items-center">
+          {typeof onClose === 'function' && (
+            <button
+              aria-label="Cerrar favoritos"
+              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+              onClick={onClose}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Overall total summary */}
