@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { X, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { Favorite } from "@/hooks/use-favorites";
 
 export interface FavoritesPanelProps {
@@ -9,52 +8,29 @@ export interface FavoritesPanelProps {
   onClose?: () => void;
 }
 
-export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos, onClose }: FavoritesPanelProps) => {
+export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: FavoritesPanelProps) => {
   const total = Object.values(groupedByStore).reduce((a, b) => a + b.length, 0);
-  const [closing, setClosing] = useState(false);
-
-  const handleClose = () => {
-    if (!onClose) return;
-    setClosing(true);
-    window.setTimeout(() => {
-      onClose();
-      setClosing(false);
-    }, 200);
-  };
 
   const containerClass = [
-    "fixed z-30",
+    "fixed z-50",
     // position responsive
-    "top-0 left-0 right-0 md:top-2 md:left-auto md:right-3 md:w-[20rem]",
+    "top-0 left-0 right-0 bottom-0 md:bottom-auto md:top-2 md:left-auto md:right-3 md:w-[20rem]",
     // size/appearance
-    "max-h-[90vh] overflow-auto bg-white/95 backdrop-blur border border-gray-200 rounded-none md:rounded-2xl shadow-xl",
+    "h-screen md:h-auto md:max-h-[90vh] overflow-auto bg-white/95 backdrop-blur border border-gray-200 rounded-none md:rounded-2xl shadow-xl pb-24 md:pb-3",
     // animation
-    closing
-      ? "animate-out duration-200 ease-in fade-out-0 zoom-out-95"
-      : "animate-in duration-200 ease-out fade-in-0 zoom-in-95",
+    "animate-in duration-200 ease-out fade-in-0 zoom-in-95",
   ].join(" ");
 
   return (
     <div className={containerClass}>
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-3 md:px-4 py-2.5 flex items-center">
-        <div className="text-sm font-semibold text-gray-900">Favoritos ({total})</div>
-        <div className="ml-auto flex items-center gap-1">
-          {typeof onClose === 'function' && (
-            <button
-              aria-label="Cerrar favoritos"
-              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-              onClick={handleClose}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 md:px-4 py-3 md:py-2.5 flex items-center md:justify-start justify-center">
+        <div className="text-base md:text-sm font-semibold text-gray-900">Favoritos ({total})</div>
       </div>
 
       {total === 0 ? (
         <div className="p-4 text-sm text-gray-600">Aún no tienes favoritos. Marca la estrella en una oferta para guardarla.</div>
       ) : (
-        <div className="p-2 space-y-3">
+        <div className="p-3 pt-4 md:pt-2 space-y-3">
           {Object.entries(groupedByStore).map(([store, items]) => (
             <div key={store} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">

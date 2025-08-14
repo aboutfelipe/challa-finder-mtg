@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Star } from "lucide-react";
+import { ChevronDown, Star, Search } from "lucide-react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
 import { searchAllStores, getStoreInfo } from "@/services/cloudflareApiSearch";
@@ -64,7 +64,7 @@ const Index = () => {
         }
       `}</style>
       {/* Modern Fintech Layout */}
-      <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 md:pt-10">
+      <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 md:pt-10 pb-24 md:pb-0">
         {/* Content Container */}
         <div className="w-full max-w-[38rem] mx-auto space-y-3">
           {/* Hero: Title + Search Form */}
@@ -140,7 +140,7 @@ const Index = () => {
       {!showFavorites && (
         <button
           aria-label="Mostrar favoritos"
-          className={`fixed top-5 right-2 z-40 flex items-center gap-2 justify-center h-10 w-10 md:w-auto rounded-full md:rounded-xl border transition-all shadow bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-50 md:px-3`}
+          className={`hidden md:flex fixed top-5 right-2 z-40 items-center gap-2 justify-center h-10 w-10 md:w-auto rounded-full md:rounded-xl border transition-all shadow bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-50 md:px-3`}
           onClick={() => setShowFavorites(true)}
         >
           <Star className={`text-gray-500 w-5 h-5`} />
@@ -152,6 +152,28 @@ const Index = () => {
       {showFavorites && (
         <FavoritesPanel groupedByStore={favoritesByStore} onRemove={removeFavorite} storeLogos={storeLogos} onClose={() => setShowFavorites(false)} />
       )}
+
+      {/* Mobile Bottom Bar (always visible) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
+        <div className="px-6 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-center justify-around text-xs">
+          <button
+            className={`flex flex-col items-center gap-1 px-3 py-1 active:scale-95 active:bg-gray-100 rounded-lg transition ${!showFavorites ? 'text-gray-900' : 'text-gray-500'}`}
+            onClick={() => setShowFavorites(false)}
+            aria-label="Ir a búsqueda"
+          >
+            <Search className={`w-5 h-5 ${!showFavorites ? 'text-gray-900' : 'text-gray-500'}`} />
+            <span className="font-medium">Buscar</span>
+          </button>
+          <button
+            className={`flex flex-col items-center gap-1 px-3 py-1 active:scale-95 active:bg-gray-100 rounded-lg transition ${showFavorites ? 'text-gray-900' : 'text-gray-500'}`}
+            onClick={() => setShowFavorites(true)}
+            aria-label="Ir a favoritos"
+          >
+            <Star className={`w-5 h-5 ${showFavorites ? 'text-gray-900' : 'text-gray-500'}`} />
+            <span className="font-medium">Favoritos</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };
