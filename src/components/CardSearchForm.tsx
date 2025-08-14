@@ -126,7 +126,7 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-6">
         <div className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">MTG Challa Finder</div>
-        <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">Buscamos en las mejores tiendas de Chile especializadas en Magic The Gathering</p>
+        <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">Buscamos la carta que necesitas en las mejores tiendas de Chile especializadas en Magic The Gathering</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
