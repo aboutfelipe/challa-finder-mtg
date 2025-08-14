@@ -9,7 +9,16 @@ export interface FavoritesPanelProps {
 }
 
 export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: FavoritesPanelProps) => {
-  const total = Object.values(groupedByStore).reduce((a, b) => a + b.length, 0);
+  const totalItems = Object.values(groupedByStore).reduce((a, b) => a + b.length, 0);
+
+  const parsePrice = (p?: string) => {
+    if (!p) return 0;
+    const digits = p.replace(/[^0-9]/g, "");
+    const n = parseInt(digits || "0", 10);
+    return isNaN(n) ? 0 : n; // CLP assumed (sin decimales)
+  };
+  const fmt = (n: number) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
+  const overallTotal = Object.values(groupedByStore).flat().reduce((sum, f) => sum + parsePrice(f.price), 0);
 
   const containerClass = [
     "fixed z-50",
@@ -23,14 +32,25 @@ export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: Favorit
 
   return (
     <div className={containerClass}>
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 md:px-4 py-3 md:py-2.5 flex items-center md:justify-start justify-center">
-        <div className="text-base md:text-sm font-semibold text-gray-900">Favoritos ({total})</div>
+      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 md:px-4 pt-6 pb-4 md:py-3 flex items-center md:justify-start justify-center">
+        <div className="text-base md:text-sm font-semibold text-gray-900">Favoritos</div>
       </div>
 
-      {total === 0 ? (
+      {/* Overall total summary */}
+      {totalItems > 0 && (
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+          <div className="text-xs text-gray-600">Total en favoritos</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-sm font-semibold text-gray-900">{fmt(overallTotal)}</div>
+            <span className="text-xs text-gray-500">({totalItems} {totalItems === 1 ? 'ítem' : 'ítems'})</span>
+          </div>
+        </div>
+      )}
+
+      {totalItems === 0 ? (
         <div className="p-4 text-sm text-gray-600">Aún no tienes favoritos. Marca la estrella en una oferta para guardarla.</div>
       ) : (
-        <div className="p-3 pt-4 md:pt-2 space-y-3">
+        <div className="p-3 pt-5 md:pt-3 space-y-3">
           {Object.entries(groupedByStore).map(([store, items]) => (
             <div key={store} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
@@ -38,7 +58,9 @@ export const FavoritesPanel = ({ groupedByStore, onRemove, storeLogos }: Favorit
                   <img src={storeLogos[store]} alt="" className="w-4 h-4 object-contain" loading="lazy" />
                 )}
                 <div className="text-xs font-semibold text-gray-900">{store}</div>
-                <div className="ml-auto text-[10px] text-gray-600">{items.length} {items.length === 1 ? 'item' : 'items'}</div>
+                <div className="ml-auto text-xs font-semibold text-gray-900">
+                  {fmt(items.reduce((s, f) => s + parsePrice(f.price), 0))}
+                </div>
               </div>
               <ul className="divide-y divide-gray-100">
                 {items.map((f) => (
