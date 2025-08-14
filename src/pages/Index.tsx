@@ -12,7 +12,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const isHero = !isLoading && searchResults.length === 0 && !lastSearchTerm;
-  const { favorites, groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite } = useFavorites();
+  const { favorites, groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite, clearFavorites } = useFavorites();
   const totalFavorites = favorites.length;
   const [showFavorites, setShowFavorites] = useState(false);
   
@@ -159,7 +159,13 @@ const Index = () => {
 
       {/* Favorites Panel fixed top-right (conditional) */}
       {showFavorites && (
-        <FavoritesPanel groupedByStore={favoritesByStore} onRemove={removeFavorite} storeLogos={storeLogos} onClose={() => setShowFavorites(false)} />
+        <FavoritesPanel 
+          groupedByStore={favoritesByStore} 
+          onRemove={removeFavorite} 
+          storeLogos={storeLogos} 
+          onClose={() => setShowFavorites(false)}
+          onClearAll={clearFavorites}
+        />
       )}
 
       {/* Mobile Bottom Bar (always visible) */}

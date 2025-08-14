@@ -355,7 +355,7 @@ export const getStoreInfo = () => {
     { name: "Catlotus", url: "https://catlotus.cl" , status: "Disponible"},
     { name: "Pay2Win", url: "https://www.paytowin.cl" , status: "Disponible"},
     { name: "TCGMatch", url: "https://tcgmatch.cl" , status: "Disponible"},
-    { name: "Tienda La Comarca", url: "https://www.tiendalacomarca.cl" , status: "Disponible"},
+    { name: "La Comarca", url: "https://www.tiendalacomarca.cl" , status: "Disponible"},
     { name: "AfkStore", url: "https://afkstore.cl" , status: "Disponible"},
     { name: "Oasis Games", url: "https://www.oasisgames.cl" , status: "Disponible"},
     { name: "La Cripta", url: "https://lacripta.cl" , status: "Próximamente"},

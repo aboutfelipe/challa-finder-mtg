@@ -113,25 +113,9 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
         </div>
       )}
       {/* Search Info */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+      <div className="p-2 mt-6 mb-6 text-center">
         <div className="text-base font-semibold text-gray-900 mb-1">Resultados para "{searchTerm}"</div>
         <div className="text-sm text-gray-600">{storesWithStock} tiendas • {totalOffers} ofertas • {totalStores} tiendas encontradas</div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex justify-around text-center shadow-sm">
-        <div className="flex flex-col gap-1">
-          <div className="text-lg font-bold text-gray-900">${clp.format(bestPrice)}</div>
-          <div className="text-xs text-gray-600 font-medium uppercase tracking-wider">Mejor precio</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-lg font-bold text-gray-900">${clp.format(avgPrice)}</div>
-          <div className="text-xs text-gray-600 font-medium uppercase tracking-wider">Precio promedio</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-lg font-bold text-gray-900">{totalStock}</div>
-          <div className="text-xs text-gray-600 font-medium uppercase tracking-wider">En stock total</div>
-        </div>
       </div>
 
 
@@ -172,7 +156,6 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
                       <div className="text-base font-semibold text-gray-900 line-clamp-1">{storeName}</div>
                     </div>
                     <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <span className="font-medium">{bestOffer.set || 'Set desconocido'}</span>
                       <div className="bg-gray-100 border border-gray-200 rounded-xl px-2 py-0.5 text-xs font-medium text-gray-700">
                         {items.length} ofertas
                       </div>
@@ -208,11 +191,6 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
                         </div>
                       </div>
                       <div className="text-xs text-gray-600 flex items-center gap-2">
-                        {bestOffer.condition && (
-                          <div className="bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium text-gray-700">
-                            {bestOffer.condition}
-                          </div>
-                        )}
                         <div className={`text-xs font-medium ${stockStatus.class}`}>
                           {stockStatus.text}
                         </div>
@@ -275,11 +253,6 @@ export const SearchResults = ({ results, searchTerm, isLoading = false, storeLog
                               </div>
                             </div>
                             <div className="text-xs text-gray-600 flex items-center gap-2">
-                              {item.condition && (
-                                <div className="bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium text-gray-700">
-                                  {item.condition}
-                                </div>
-                              )}
                               <div className={`text-xs font-medium ${item.inStock ? 'text-green-600' : 'text-gray-500'}`}> 
                                 {item.inStock ? 'En stock' : 'Sin stock'}
                               </div>

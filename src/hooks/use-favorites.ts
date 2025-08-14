@@ -63,6 +63,8 @@ export const useFavorites = () => {
     }, {} as Record<string, Favorite[]>);
   }, [favorites]);
 
+  const clearFavorites = () => setFavorites([]);
+
   return {
     favorites,
     groupedByStore,
@@ -70,6 +72,7 @@ export const useFavorites = () => {
     addFavorite,
     removeFavorite,
     toggleFavorite,
+    clearFavorites,
     buildId,
   } as const;
 };
