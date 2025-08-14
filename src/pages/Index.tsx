@@ -65,7 +65,7 @@ const Index = () => {
         }
       `}</style>
       {/* Modern Fintech Layout */}
-      <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 md:pt-10 pb-24 md:pb-0">
+      <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 md:pt-10 pb-24 md:pb-12">
         {/* Content Container */}
         <div className="w-full max-w-[38rem] mx-auto space-y-3">
           {/* Hero: Title + Search Form */}
@@ -104,9 +104,6 @@ const Index = () => {
             <div className="mt-1">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">Tiendas Consultadas</h2>
-                <p className="text-sm text-gray-600">
-                  Buscamos en las mejores tiendas de Chile especializadas en Magic The Gathering
-                </p>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
@@ -137,6 +134,11 @@ const Index = () => {
           )}
         </div>
       </div>
+      {/* Minimalist Footer */}
+      <footer className="w-full text-center text-xs text-gray-500 py-6 select-none">
+        Creado con 💜 por un fan de las magias
+      </footer>
+
       {/* Floating Favorites Toggle Button (hidden when open) */}
       {!showFavorites && (
         <button
