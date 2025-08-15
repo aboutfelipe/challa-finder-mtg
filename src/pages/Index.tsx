@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Star, Search } from "lucide-react";
 import { CardSearchForm } from "@/components/CardSearchForm";
 import { SearchResults, CardResult } from "@/components/SearchResults";
@@ -12,10 +12,43 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const isHero = !isLoading && searchResults.length === 0 && !lastSearchTerm;
+  const [recent, setRecent] = useState<string[]>([]);
+  const [preset, setPreset] = useState("");
   const { favorites, groupedByStore: favoritesByStore, isFavorite, toggleFavorite, removeFavorite, clearFavorites } = useFavorites();
   const totalFavorites = favorites.length;
   const [showFavorites, setShowFavorites] = useState(false);
   
+  // Recent searches (persisted)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("mtg_recent_searches_v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as string[];
+        if (Array.isArray(parsed)) setRecent(parsed.slice(0, 5));
+      }
+    } catch {}
+  }, []);
+
+  const pushRecent = (term: string) => {
+    const t = term.trim();
+    if (!t) return;
+    setRecent((prev) => {
+      const next = [t, ...prev.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, 5);
+      try { localStorage.setItem("mtg_recent_searches_v1", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const handleGoHome = () => {
+    setIsLoading(false);
+    setSearchResults([]);
+    setLastSearchTerm("");
+    setPreset("");
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {}
+  };
+
   // Build a map of store name -> logo URL (favicon) once
   const storeLogos = useMemo(() => {
     try {
@@ -40,6 +73,7 @@ const Index = () => {
     setIsLoading(true);
     setLastSearchTerm(cardName);
     setSearchResults([]);
+    pushRecent(cardName);
 
     try {
       const results = await searchAllStores(cardName);
@@ -72,12 +106,33 @@ const Index = () => {
           <div
             className={[
               "transition-all duration-500 relative",
-              isHero ? "min-h-[60vh] flex items-center justify-center" : "pt-4 md:pt-6"
+              isHero ? "min-h-[60vh] flex flex-col items-center justify-center" : "pt-4 md:pt-6"
             ].join(" ")}
           >
             <div className="w-full">
-              <CardSearchForm onSearch={handleSearch} isLoading={isLoading} />
+              <CardSearchForm onSearch={handleSearch} isLoading={isLoading} preset={preset} onGoHome={handleGoHome} />
             </div>
+            {/* Recent Searches (show on hero only, below the search button) */}
+            {isHero && recent.length > 0 && (
+              <div className="w-full max-w-[28rem] mx-auto mt-4 px-2">
+                <div className="text-center mb-2 text-xs font-semibold text-gray-700">Búsquedas recientes</div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {recent.map((q) => (
+                    <button
+                      key={q}
+                      className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white/80 text-xs text-gray-700 hover:bg-white hover:border-gray-300 transition"
+                      onClick={() => {
+                        if (isLoading) return;
+                        setPreset(q);
+                        handleSearch(q);
+                      }}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {isHero && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-gray-400">
                 <ChevronDown className="h-4 w-4 animate-bounce" aria-hidden="true" />
@@ -103,7 +158,7 @@ const Index = () => {
           {isHero && (
             <div className="mt-1">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Tiendas Consultadas</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Tiendas disponibles para buscar</h2>
               </div>
               
               <div className="grid grid-cols-2 gap-3">

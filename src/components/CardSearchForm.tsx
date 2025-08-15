@@ -5,9 +5,11 @@ import { Search, XCircle } from "lucide-react";
 interface CardSearchFormProps {
   onSearch: (cardName: string) => void;
   isLoading: boolean;
+  preset?: string;
+  onGoHome?: () => void;
 }
 
-export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => {
+export const CardSearchForm = ({ onSearch, isLoading, preset, onGoHome }: CardSearchFormProps) => {
   const [cardName, setCardName] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -122,6 +124,13 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
     return () => document.removeEventListener("mousedown", handleDocMouseDown);
   }, []);
 
+  // Sync preset from parent into local input when it changes
+  useEffect(() => {
+    if (typeof preset === "string" && preset !== cardName) {
+      setCardName(preset);
+    }
+  }, [preset]);
+
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-6">
@@ -133,12 +142,16 @@ export const CardSearchForm = ({ onSearch, isLoading }: CardSearchFormProps) => 
           }
         `}</style>
         <div
-          className="text-2xl font-bold mb-2 tracking-tight text-transparent bg-clip-text"
+          className="text-2xl font-bold mb-2 tracking-tight text-transparent bg-clip-text cursor-pointer select-none"
           style={{
             backgroundImage: 'linear-gradient(90deg, #3b82f6 0%, #a855f7 20%, #ec4899 50%, #a855f7 80%, #3b82f6 100%)',
             backgroundSize: '200% 100%',
             animation: 'gradient-move-x 10s linear infinite',
           }}
+          onClick={() => {
+            onGoHome?.();
+          }}
+          aria-label="Ir al inicio"
         >
           MTG Challa Finder
         </div>
